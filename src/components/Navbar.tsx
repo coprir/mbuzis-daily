@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import { Radio, Compass, Shield, Users, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useStore, onlineCount } from "@/lib/store";
-import { userById } from "@/lib/data";
 import Avatar from "./Avatar";
 
 const links = [
@@ -19,7 +18,8 @@ const links = [
 export default function Navbar() {
   const path = usePathname();
   const users = useStore((s) => s.users);
-  const me = userById(useStore((s) => s.currentUserId))!;
+  const meId = useStore((s) => s.currentUserId);
+  const me = users.find((u) => u.id === meId);
   const [open, setOpen] = useState(false);
   const online = onlineCount(users);
 
@@ -71,9 +71,11 @@ export default function Navbar() {
             </span>
             <span className="text-xs font-semibold text-white/80">{online} online</span>
           </div>
-          <Link href="/profile" className="hidden items-center gap-2 sm:flex">
-            <Avatar user={me} size="sm" />
-          </Link>
+          {me && (
+            <Link href="/profile" className="hidden items-center gap-2 sm:flex">
+              <Avatar user={me} size="sm" />
+            </Link>
+          )}
           <button className="md:hidden text-white" onClick={() => setOpen((o) => !o)}>
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>

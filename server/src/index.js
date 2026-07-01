@@ -7,6 +7,24 @@ import { makeUsers, makeRooms, TRENDING_TOPICS, MAX_ADMINS } from "./seed.js";
 
 const PORT = process.env.PORT || 4000;
 const ORIGIN = process.env.CLIENT_ORIGIN || "*";
+const ADMIN_CODE = process.env.ADMIN_CODE || "mbuzi-admin-2026";
+
+// registered sessions for username auth: userId -> { token, username }
+const sessions = new Map();
+
+const PALETTE = [
+  "linear-gradient(135deg,#8b5cf6,#d946ef)",
+  "linear-gradient(135deg,#22d3ee,#3b82f6)",
+  "linear-gradient(135deg,#f472b6,#fb7185)",
+  "linear-gradient(135deg,#a3e635,#22d3ee)",
+  "linear-gradient(135deg,#fbbf24,#f97316)",
+  "linear-gradient(135deg,#818cf8,#c084fc)",
+  "linear-gradient(135deg,#2dd4bf,#0ea5e9)",
+  "linear-gradient(135deg,#f43f5e,#8b5cf6)",
+];
+const hashStr = (s) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); };
+const initialsOf = (n) => n.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+const stripSockets = (u) => { const { sockets, ...rest } = u; return rest; };
 
 // ---------------------------------------------------------------------------
 // In-memory state (swap for Postgres + Redis in production; see README)
@@ -43,10 +61,25 @@ function derivePresence(u) {
     const inRoom = state.rooms.some((r) => r.live && r.participantIds.includes(u.id));
     return inRoom ? "in-call" : "online";
   }
-  return u.presence;
+  // real (registered) users go offline when they disconnect; seed bots keep
+  // their seeded presence so the space always feels populated.
+  return u.dynamic ? "offline" : u.presence;
 }
+// full user objects so the client can render dynamically-registered users
 function publicUsers() {
-  return state.users.map((u) => ({ id: u.id, presence: derivePresence(u), role: u.role }));
+  return state.users.map((u) => ({ ...stripSockets(u), presence: derivePresence(u) }));
+}
+function emitInit(socket) {
+  socket.emit("state:init", {
+    you: socket.data.userId,
+    users: publicUsers(),
+    rooms: publicRooms(),
+    requests: state.requests.filter((r) => r.status === "pending"),
+    modLogs: state.modLogs,
+    meta: state.meta,
+    trending: TRENDING_TOPICS,
+    maxAdmins: MAX_ADMINS,
+  });
 }
 function publicRooms() {
   return state.rooms.map((r) => ({ ...r }));
@@ -104,25 +137,88 @@ function broadcastRoom(room) {
 io.on("connection", (socket) => {
   let userId = null;
 
-  // ---- identity ----
+  // ---- seed identity (used by ?u= links and tests; no registration) ----
   socket.on("identify", (payload) => {
     userId = (payload && payload.userId) || "u1";
     const u = userById(userId);
     if (!u) return;
     u.sockets.add(socket.id);
     socket.data.userId = userId;
-
-    socket.emit("state:init", {
-      you: userId,
-      users: publicUsers(),
-      rooms: publicRooms(),
-      requests: state.requests.filter((r) => r.status === "pending"),
-      modLogs: state.modLogs,
-      meta: state.meta,
-      trending: TRENDING_TOPICS,
-      maxAdmins: MAX_ADMINS,
-    });
+    emitInit(socket);
     broadcastUsers();
+  });
+
+  // ---- username auth: register a new user, or resume a saved session ----
+  socket.on("auth", (payload = {}) => {
+    // resume an existing session
+    if (payload.resume?.userId && payload.resume?.token) {
+      const sess = sessions.get(payload.resume.userId);
+      const u = userById(payload.resume.userId);
+      if (sess && u && sess.token === payload.resume.token) {
+        userId = u.id;
+        u.sockets.add(socket.id);
+        socket.data.userId = userId;
+        socket.emit("auth:ok", { user: stripSockets(u), token: sess.token });
+        emitInit(socket);
+        broadcastUsers();
+      } else {
+        socket.emit("auth:error", { code: "session", message: "Session expired — pick a username to rejoin." });
+      }
+      return;
+    }
+
+    // register a new username
+    const name = String(payload.username || "").trim().slice(0, 20);
+    if (name.length < 2) return socket.emit("auth:error", { message: "Username must be at least 2 characters." });
+    if (!/^[\w .-]+$/.test(name)) return socket.emit("auth:error", { message: "Use letters, numbers, spaces, _ or - only." });
+    if (state.users.some((u) => u.username.toLowerCase() === name.toLowerCase()))
+      return socket.emit("auth:error", { message: "That username is taken — try another." });
+
+    let role = "member";
+    if (payload.adminCode) {
+      if (payload.adminCode !== ADMIN_CODE)
+        return socket.emit("auth:error", { message: "Invalid admin code." });
+      const activeAdmins = state.users.filter((u) => u.role === "admin" && u.sockets.size > 0).length;
+      if (activeAdmins >= MAX_ADMINS)
+        return socket.emit("auth:error", { message: `All ${MAX_ADMINS} admin seats are in use — join as a member.` });
+      role = "admin";
+    }
+
+    const u = {
+      id: "g" + nanoid(8),
+      username: name,
+      handle: (name.toLowerCase().replace(/[^a-z0-9]/g, "") || "guest").slice(0, 15),
+      avatar: initialsOf(name),
+      role,
+      presence: "online",
+      bio: "New to Mbuzis Daily 👋",
+      followers: 0,
+      following: false,
+      color: PALETTE[hashStr(name) % PALETTE.length],
+      dynamic: true,
+      sockets: new Set(),
+    };
+    state.users.push(u);
+    const token = nanoid(24);
+    sessions.set(u.id, { token, username: name });
+    userId = u.id;
+    u.sockets.add(socket.id);
+    socket.data.userId = userId;
+    socket.emit("auth:ok", { user: stripSockets(u), token });
+    emitInit(socket);
+    broadcastUsers();
+    if (role === "admin") logMod(u.id, `joined as an admin`);
+  });
+
+  // ---- sign out ----
+  socket.on("auth:signout", () => {
+    const u = userById(socket.data.userId);
+    if (u) {
+      u.sockets.delete(socket.id);
+      broadcastUsers();
+    }
+    userId = null;
+    socket.data.userId = null;
   });
 
   // ---- create room ----

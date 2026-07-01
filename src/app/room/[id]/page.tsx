@@ -11,7 +11,6 @@ import Navbar from "@/components/Navbar";
 import Avatar from "@/components/Avatar";
 import { useStore } from "@/lib/store";
 import { useMesh } from "@/lib/webrtc";
-import { userById } from "@/lib/data";
 
 const reactions = ["🔥", "😂", "❤️", "👏", "🙌", "💯", "🎉", "🐐"];
 
@@ -20,7 +19,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
   const store = useStore();
   const room = store.rooms.find((r) => r.id === id);
   const meId = store.currentUserId;
-  const me = userById(meId)!;
+  const me = store.userById(meId)!;
 
   const [joined, setJoined] = useState(false);
   const [pendingJoin, setPendingJoin] = useState(false);
@@ -75,7 +74,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
 
   // ---- Lobby (request to join) ----
   if (!joined) {
-    const host = userById(room.hostId)!;
+    const host = store.userById(room.hostId)!;
     return (
       <main className="min-h-screen">
         <Navbar />
@@ -141,7 +140,7 @@ function LiveRoom({
   // real peer video/audio over WebRTC when connected to the live server
   const { localStream, streams, mediaError } = useMesh({ roomId, active: connected, micOn, camOn });
 
-  const participants = room.participantIds.map((pid) => userById(pid)!).filter(Boolean);
+  const participants = room.participantIds.map((pid) => store.userById(pid)!).filter(Boolean);
   const pinned = participants.filter((p) => store.pstate(roomId, p.id).pinned);
 
   useEffect(() => {
@@ -298,7 +297,7 @@ function LiveRoom({
                   <p className="py-8 text-center text-sm text-white/35">Say hi 👋 — the room is listening.</p>
                 )}
                 {messages.map((m) => {
-                  const u = userById(m.userId)!;
+                  const u = store.userById(m.userId)!;
                   const mine = m.userId === meId;
                   return (
                     <div key={m.id} className={`flex gap-2 ${mine ? "flex-row-reverse" : ""}`}>
@@ -462,7 +461,7 @@ function RequestsInline({ roomId }: { roomId: string }) {
       <div className="space-y-2">
         <AnimatePresence initial={false}>
           {pending.map((r) => {
-            const u = userById(r.userId)!;
+            const u = store.userById(r.userId)!;
             return (
               <motion.div
                 key={r.id}

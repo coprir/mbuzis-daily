@@ -1,17 +1,21 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Mail, Phone, Chrome, ShieldCheck, Radio, Bell, MonitorSmartphone } from "lucide-react";
+import { Mail, Phone, Chrome, ShieldCheck, Radio, Bell, MonitorSmartphone, LogOut } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Avatar from "@/components/Avatar";
 import { useStore } from "@/lib/store";
-import { userById } from "@/lib/data";
 
 export default function Profile() {
   const meId = useStore((s) => s.currentUserId);
-  const me = userById(meId)!;
+  const users = useStore((s) => s.users);
+  const me = users.find((u) => u.id === meId);
   const rooms = useStore((s) => s.rooms);
+  const auth = useStore((s) => s.auth);
+  const signOut = useStore((s) => s.signOut);
   const myRooms = rooms.filter((r) => r.hostId === meId);
+
+  if (!me) return null;
 
   const devices = [
     { name: "Chrome · Windows 11", loc: "Nairobi, KE", current: true },
@@ -33,14 +37,20 @@ export default function Profile() {
                 <div className="pb-1">
                   <div className="flex items-center gap-2">
                     <h1 className="font-display text-2xl font-bold text-white">{me.username}</h1>
-                    <span className="chip bg-neon-fuchsia/20 text-neon-fuchsia">
-                      <ShieldCheck className="h-3.5 w-3.5" /> Admin
-                    </span>
+                    {me.role === "admin" && (
+                      <span className="chip bg-neon-fuchsia/20 text-neon-fuchsia">
+                        <ShieldCheck className="h-3.5 w-3.5" /> Admin
+                      </span>
+                    )}
+                    {me.role === "host" && <span className="chip bg-neon-cyan/20 text-neon-cyan">Host</span>}
+                    {(me.role === "member" || me.role === "guest") && (
+                      <span className="chip bg-white/10 text-white/60 capitalize">{me.role}</span>
+                    )}
                   </div>
                   <p className="text-sm text-white/45">@{me.handle}</p>
                 </div>
               </div>
-              <div className="flex gap-6 pb-1 text-center">
+              <div className="flex items-center gap-6 pb-1 text-center">
                 <div>
                   <p className="font-display text-xl font-bold text-white">{me.followers.toLocaleString()}</p>
                   <p className="text-xs text-white/45">followers</p>
@@ -49,6 +59,14 @@ export default function Profile() {
                   <p className="font-display text-xl font-bold text-white">{myRooms.length}</p>
                   <p className="text-xs text-white/45">rooms hosted</p>
                 </div>
+                {auth && (
+                  <button
+                    onClick={signOut}
+                    className="chip border border-white/15 bg-white/5 text-white/70 hover:bg-red-500/15 hover:text-red-300"
+                  >
+                    <LogOut className="h-3.5 w-3.5" /> Sign out
+                  </button>
+                )}
               </div>
             </div>
             <p className="mt-4 max-w-lg text-sm text-white/60">{me.bio}</p>

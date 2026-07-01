@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Info, AlertTriangle, X, Wifi } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { initSocket } from "@/lib/socket";
+import AuthGate from "./AuthGate";
 
 // Connects to the realtime server (if configured), drives the demo-mode
 // simulation loop when offline, and renders global toasts + a live badge.
@@ -27,7 +28,7 @@ export default function LiveProvider({ children }: { children: React.ReactNode }
 
   return (
     <>
-      {children}
+      <AuthGate>{children}</AuthGate>
       {connected && (
         <div className="fixed bottom-5 left-5 z-[100] hidden items-center gap-2 rounded-full border border-neon-lime/30 bg-neon-lime/10 px-3 py-1.5 text-xs font-semibold text-neon-lime backdrop-blur sm:flex">
           <Wifi className="h-3.5 w-3.5" /> Live server connected

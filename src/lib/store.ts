@@ -58,11 +58,24 @@ interface State {
   meta: Record<string, RoomMeta>;
   currentUserId: string;
 
-  // networking
-  connected: boolean;
+  // networking + auth
+  connected: boolean; // authenticated & ready to route actions
+  socketReady: boolean; // transport connected (may not be authed yet)
+  liveMode: boolean; // a realtime server URL is configured
   emit: ((event: string, payload?: unknown) => void) | null;
-  setNet: (emit: State["emit"], connected: boolean) => void;
+  auth: { userId: string; token: string; username: string } | null;
+  authError: string | null;
+  authPending: boolean;
+  setLiveMode: (v: boolean) => void;
+  setEmit: (emit: State["emit"]) => void;
+  setSocketReady: (v: boolean) => void;
+  setConnected: (v: boolean) => void;
   setIdentity: (userId: string) => void;
+  signIn: (username: string, adminCode?: string) => void;
+  signOut: () => void;
+  applyAuthOk: (p: { user: User; token: string }) => void;
+  applyAuthError: (message: string) => void;
+  userById: (id: string) => User | undefined;
   admittedRooms: string[];
   markAdmitted: (roomId: string) => void;
   markRemoved: (roomId: string) => void;
@@ -92,13 +105,13 @@ interface State {
   // server-event appliers (do NOT re-emit)
   applyInit: (p: {
     you?: string;
-    users?: { id: string; presence: Presence; role: User["role"] }[];
+    users?: User[];
     rooms?: Room[];
     requests?: JoinRequest[];
     modLogs?: ModLog[];
     meta?: Record<string, RoomMeta>;
   }) => void;
-  applyUsers: (u: { id: string; presence: Presence; role: User["role"] }[]) => void;
+  applyUsers: (u: User[]) => void;
   upsertRoom: (room: Room) => void;
   addRequest: (r: JoinRequest) => void;
   applyRequestResolved: (r: JoinRequest) => void;
@@ -146,11 +159,55 @@ export const useStore = create<State>((set, get) => {
     meta: {},
     currentUserId,
     connected: false,
+    socketReady: false,
+    liveMode: false,
     emit: null,
+    auth: null,
+    authError: null,
+    authPending: false,
     admittedRooms: [],
 
-    setNet: (emit, connected) => set({ emit, connected }),
+    setLiveMode: (v) => set({ liveMode: v }),
+    setEmit: (emit) => set({ emit }),
+    setSocketReady: (v) => set((s) => ({ socketReady: v, connected: v ? s.connected : false })),
+    setConnected: (v) => set({ connected: v }),
     setIdentity: (userId) => set({ currentUserId: userId }),
+
+    signIn: (username, adminCode) => {
+      const { emit } = get();
+      if (!emit) {
+        set({ authError: "Still connecting to the server — try again in a moment." });
+        return;
+      }
+      set({ authPending: true, authError: null });
+      emit("auth", { username, adminCode: adminCode || undefined });
+    },
+    signOut: () => {
+      try { localStorage.removeItem("mbuzis_session"); } catch {}
+      get().emit?.("auth:signout");
+      if (typeof window !== "undefined") window.location.href = "/";
+    },
+    applyAuthOk: ({ user, token }) => {
+      try {
+        localStorage.setItem("mbuzis_session", JSON.stringify({ userId: user.id, token, username: user.username }));
+      } catch {}
+      set((s) => ({
+        auth: { userId: user.id, token, username: user.username },
+        currentUserId: user.id,
+        connected: true,
+        authPending: false,
+        authError: null,
+        users: s.users.some((u) => u.id === user.id)
+          ? s.users.map((u) => (u.id === user.id ? user : u))
+          : [...s.users, user],
+      }));
+    },
+    applyAuthError: (message) => {
+      try { localStorage.removeItem("mbuzis_session"); } catch {}
+      set({ authError: message, authPending: false });
+    },
+    userById: (id) => get().users.find((u) => u.id === id),
+
     markAdmitted: (roomId) =>
       set((s) => (s.admittedRooms.includes(roomId) ? s : { admittedRooms: [...s.admittedRooms, roomId] })),
     markRemoved: (roomId) =>
@@ -312,14 +369,14 @@ export const useStore = create<State>((set, get) => {
     applyInit: (p) => {
       set((s) => ({
         currentUserId: p.you ?? s.currentUserId,
-        users: p.users ? mergePresence(s.users, p.users) : s.users,
+        users: p.users ?? s.users, // server sends full user list (incl. registered users)
         rooms: p.rooms ?? s.rooms,
         requests: p.requests ?? s.requests,
         modLogs: p.modLogs ?? s.modLogs,
         meta: p.meta ?? s.meta,
       }));
     },
-    applyUsers: (u) => set((s) => ({ users: mergePresence(s.users, u) })),
+    applyUsers: (u) => set({ users: u }),
     upsertRoom: (room) =>
       set((s) => {
         const exists = s.rooms.some((r) => r.id === room.id);
@@ -393,16 +450,5 @@ export const useStore = create<State>((set, get) => {
     },
   };
 });
-
-function mergePresence(
-  local: User[],
-  incoming: { id: string; presence: Presence; role: User["role"] }[]
-): User[] {
-  const map = new Map(incoming.map((i) => [i.id, i]));
-  return local.map((u) => {
-    const i = map.get(u.id);
-    return i ? { ...u, presence: i.presence, role: i.role } : u;
-  });
-}
 
 export const onlineCount = (users: User[]) => users.filter((u) => u.presence !== "offline").length;

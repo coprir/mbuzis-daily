@@ -10,7 +10,7 @@ import Navbar from "@/components/Navbar";
 import Avatar from "@/components/Avatar";
 import { useStore, onlineCount } from "@/lib/store";
 import { useMounted } from "@/lib/useMounted";
-import { userById, MAX_ADMINS } from "@/lib/data";
+import { MAX_ADMINS } from "@/lib/data";
 
 function ago(ts: number) {
   const s = Math.round((Date.now() - ts) / 1000);
@@ -24,7 +24,8 @@ export default function Admin() {
     users, rooms, requests, modLogs, resolveRequest, toggleLock, endRoom, createRoom, announce, removeUser,
   } = useStore();
   const meId = useStore((s) => s.currentUserId);
-  const me = userById(meId)!;
+  const userById = (id: string) => users.find((u) => u.id === id);
+  const me = userById(meId);
   const mounted = useMounted();
   const admins = users.filter((u) => u.role === "admin");
   const pending = requests.filter((r) => r.status === "pending");
@@ -34,7 +35,7 @@ export default function Admin() {
   const [ann, setAnn] = useState("");
 
   // Role-based access gate
-  if (me.role !== "admin") {
+  if (!me || me.role !== "admin") {
     return (
       <main className="min-h-screen">
         <Navbar />

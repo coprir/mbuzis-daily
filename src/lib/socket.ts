@@ -2,7 +2,6 @@
 
 import { io, type Socket } from "socket.io-client";
 import { useStore } from "./store";
-import { users, currentUserId } from "./data";
 
 let socket: Socket | null = null;
 
@@ -10,34 +9,22 @@ export function getSocket(): Socket | null {
   return socket;
 }
 
-// Give each visitor a distinct identity so friends appear as different people.
-// Priority: ?u=<id> query param → saved localStorage id → a random member.
-// Tip: open ?u=u1 to be "Zawadi" (an admin) and access the admin dashboard.
-function resolveIdentity(): string {
+function savedSession(): { userId: string; token: string } | null {
   try {
-    const params = new URLSearchParams(window.location.search);
-    const q = params.get("u");
-    const valid = (id: string | null) => !!id && users.some((u) => u.id === id);
-    if (valid(q)) {
-      localStorage.setItem("mbuzis_uid", q!);
-      return q!;
-    }
-    const saved = localStorage.getItem("mbuzis_uid");
-    if (valid(saved)) return saved!;
-    // pick a random non-admin seed identity (members/guests: u7..u20)
-    const pool = users.filter((u) => u.role !== "admin").map((u) => u.id);
-    const pick = pool[Math.floor(Math.random() * pool.length)] || currentUserId;
-    localStorage.setItem("mbuzis_uid", pick);
-    return pick;
+    const raw = localStorage.getItem("mbuzis_session");
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    return s?.userId && s?.token ? { userId: s.userId, token: s.token } : null;
   } catch {
-    return currentUserId;
+    return null;
   }
 }
 
 /**
  * Connect to the realtime server if NEXT_PUBLIC_SOCKET_URL is configured.
- * If it isn't set, or the connection fails, the app stays in demo mode
- * (the client-side simulation in the store keeps running).
+ * In live mode, users authenticate with a username (see AuthGate) — or resume
+ * a saved session automatically. Without a server URL the app runs in demo
+ * mode with the seed identity.
  */
 export function initSocket(): Socket | null {
   if (typeof window === "undefined") return null;
@@ -47,30 +34,37 @@ export function initSocket(): Socket | null {
   if (!url) return null; // demo mode
 
   const store = useStore.getState();
-  const identity = resolveIdentity();
-  store.setIdentity(identity); // reflect in the UI even before/without connecting
+  store.setLiveMode(true);
 
   socket = io(url, {
     transports: ["websocket", "polling"],
-    reconnectionAttempts: 5,
-    timeout: 6000,
+    reconnectionAttempts: 8,
+    timeout: 7000,
   });
 
   socket.on("connect", () => {
-    socket?.emit("identify", { userId: identity });
-    useStore.getState().setNet((event, payload) => socket?.emit(event, payload), true);
+    const s = useStore.getState();
+    s.setEmit((event, payload) => socket?.emit(event, payload));
+    s.setSocketReady(true);
+    // auto-resume a saved session; otherwise the AuthGate collects a username
+    const sess = savedSession();
+    if (sess) socket?.emit("auth", { resume: sess });
   });
 
   socket.on("disconnect", () => {
-    useStore.getState().setNet(null, false);
+    const s = useStore.getState();
+    s.setEmit(null);
+    s.setSocketReady(false);
   });
 
-  socket.io.on("error", () => {
-    useStore.getState().setNet(null, false);
-  });
+  socket.io.on("error", () => useStore.getState().setSocketReady(false));
+
+  // ---- auth ----
+  socket.on("auth:ok", (p) => useStore.getState().applyAuthOk(p));
+  socket.on("auth:error", (e) => useStore.getState().applyAuthError(e?.message || "Sign-in failed."));
 
   // ---- state sync ----
-  socket.on("state:init", (p) => store.applyInit(p));
+  socket.on("state:init", (p) => useStore.getState().applyInit(p));
   socket.on("users:update", (u) => useStore.getState().applyUsers(u));
   socket.on("room:update", (r) => useStore.getState().upsertRoom(r));
   socket.on("room:created", (r) => useStore.getState().upsertRoom(r));
