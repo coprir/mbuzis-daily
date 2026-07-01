@@ -2,12 +2,36 @@
 
 import { io, type Socket } from "socket.io-client";
 import { useStore } from "./store";
-import { currentUserId } from "./data";
+import { users, currentUserId } from "./data";
 
 let socket: Socket | null = null;
 
 export function getSocket(): Socket | null {
   return socket;
+}
+
+// Give each visitor a distinct identity so friends appear as different people.
+// Priority: ?u=<id> query param → saved localStorage id → a random member.
+// Tip: open ?u=u1 to be "Zawadi" (an admin) and access the admin dashboard.
+function resolveIdentity(): string {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("u");
+    const valid = (id: string | null) => !!id && users.some((u) => u.id === id);
+    if (valid(q)) {
+      localStorage.setItem("mbuzis_uid", q!);
+      return q!;
+    }
+    const saved = localStorage.getItem("mbuzis_uid");
+    if (valid(saved)) return saved!;
+    // pick a random non-admin seed identity (members/guests: u7..u20)
+    const pool = users.filter((u) => u.role !== "admin").map((u) => u.id);
+    const pick = pool[Math.floor(Math.random() * pool.length)] || currentUserId;
+    localStorage.setItem("mbuzis_uid", pick);
+    return pick;
+  } catch {
+    return currentUserId;
+  }
 }
 
 /**
@@ -23,6 +47,8 @@ export function initSocket(): Socket | null {
   if (!url) return null; // demo mode
 
   const store = useStore.getState();
+  const identity = resolveIdentity();
+  store.setIdentity(identity); // reflect in the UI even before/without connecting
 
   socket = io(url, {
     transports: ["websocket", "polling"],
@@ -31,7 +57,7 @@ export function initSocket(): Socket | null {
   });
 
   socket.on("connect", () => {
-    socket?.emit("identify", { userId: currentUserId });
+    socket?.emit("identify", { userId: identity });
     useStore.getState().setNet((event, payload) => socket?.emit(event, payload), true);
   });
 

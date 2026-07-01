@@ -62,6 +62,7 @@ interface State {
   connected: boolean;
   emit: ((event: string, payload?: unknown) => void) | null;
   setNet: (emit: State["emit"], connected: boolean) => void;
+  setIdentity: (userId: string) => void;
   admittedRooms: string[];
   markAdmitted: (roomId: string) => void;
   markRemoved: (roomId: string) => void;
@@ -149,6 +150,7 @@ export const useStore = create<State>((set, get) => {
     admittedRooms: [],
 
     setNet: (emit, connected) => set({ emit, connected }),
+    setIdentity: (userId) => set({ currentUserId: userId }),
     markAdmitted: (roomId) =>
       set((s) => (s.admittedRooms.includes(roomId) ? s : { admittedRooms: [...s.admittedRooms, roomId] })),
     markRemoved: (roomId) =>
