@@ -1,0 +1,24 @@
+# Local all-in-one: realtime server + Next.js web app.
+#   docker compose up --build
+# Then open http://localhost:3800
+services:
+  server:
+    build: ./server
+    environment:
+      - PORT=4000
+      - CLIENT_ORIGIN=http://localhost:3800
+    ports:
+      - "4000:4000"
+
+  web:
+    build:
+      context: .
+      args:
+        # baked into the client bundle at build time
+        NEXT_PUBLIC_SOCKET_URL: http://localhost:4000
+    environment:
+      - PORT=3800
+    ports:
+      - "3800:3800"
+    depends_on:
+      - server

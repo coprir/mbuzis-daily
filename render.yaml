@@ -1,0 +1,32 @@
+# Render Blueprint — deploys the realtime server (and optionally the web app).
+# The Socket.IO server needs a long-lived host (Render/Railway/Fly), NOT a
+# serverless platform. The Next.js frontend deploys great on Vercel (see
+# vercel.json) or as the Docker web service below.
+services:
+  # --- realtime Socket.IO + WebRTC signaling server ---
+  - type: web
+    name: mbuzis-daily-server
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: CLIENT_ORIGIN
+        # set to your deployed web app URL after the frontend is live
+        value: https://mbuzis-daily.vercel.app
+
+  # --- (optional) Next.js web app, if you don't use Vercel ---
+  - type: web
+    name: mbuzis-daily-web
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NEXT_PUBLIC_SOCKET_URL
+        # set to the realtime server URL above once it's deployed
+        value: https://mbuzis-daily-server.onrender.com
