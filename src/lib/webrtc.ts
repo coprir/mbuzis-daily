@@ -3,11 +3,34 @@
 import { useEffect, useRef, useState } from "react";
 import { getSocket } from "./socket";
 
-const ICE_SERVERS: RTCIceServer[] = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
-  // Production: add a TURN server (see README) for NAT traversal reliability.
-];
+// STUN handles most networks; TURN relays media when peers are behind
+// symmetric NATs (e.g. two people on different mobile networks).
+// Defaults use the public OpenRelay project TURN; override with your own via
+// NEXT_PUBLIC_TURN_URL / NEXT_PUBLIC_TURN_USER / NEXT_PUBLIC_TURN_PASS.
+function buildIceServers(): RTCIceServer[] {
+  const servers: RTCIceServer[] = [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+  ];
+  const turnUrl = process.env.NEXT_PUBLIC_TURN_URL;
+  if (turnUrl) {
+    servers.push({
+      urls: turnUrl.split(","),
+      username: process.env.NEXT_PUBLIC_TURN_USER,
+      credential: process.env.NEXT_PUBLIC_TURN_PASS,
+    });
+  } else {
+    // free public fallback so cross-network video works out of the box
+    servers.push(
+      { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+      { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+      { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
+    );
+  }
+  return servers;
+}
+
+const ICE_SERVERS: RTCIceServer[] = buildIceServers();
 
 interface PeerEntry {
   pc: RTCPeerConnection;
