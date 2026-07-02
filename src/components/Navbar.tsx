@@ -7,6 +7,7 @@ import { Radio, Compass, Shield, Users, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useStore, onlineCount } from "@/lib/store";
 import Avatar from "./Avatar";
+import StartRoomButton from "./StartRoomButton";
 
 const links = [
   { href: "/", label: "Home", icon: Radio },
@@ -70,7 +71,8 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden items-center gap-2 rounded-full border border-mint-400/20 bg-mint-400/[0.07] px-3 py-1.5 sm:flex">
+          <StartRoomButton className="hidden !px-4 !py-2 !text-sm sm:inline-flex" />
+          <div className="hidden items-center gap-2 rounded-full border border-mint-400/20 bg-mint-400/[0.07] px-3 py-1.5 lg:flex">
             <span className="relative flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-70" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-mint-400" />
@@ -105,6 +107,9 @@ export default function Navbar() {
               {l.label}
             </Link>
           ))}
+          <div className="mt-2" onClick={() => setOpen(false)}>
+            <StartRoomButton className="w-full justify-center" />
+          </div>
         </nav>
       )}
     </header>

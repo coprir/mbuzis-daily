@@ -6,6 +6,7 @@ import { Radio, Users, Flame, Sparkles, ArrowRight, ShieldCheck, Hand, MessageSq
 import Navbar from "@/components/Navbar";
 import RoomCard from "@/components/RoomCard";
 import PresenceList from "@/components/PresenceList";
+import StartRoomButton from "@/components/StartRoomButton";
 import { useStore, onlineCount } from "@/lib/store";
 import { trendingTopics } from "@/lib/data";
 
@@ -65,9 +66,7 @@ export default function Home() {
               <Link href="/explore" className="btn-primary w-full sm:w-auto">
                 <Radio className="h-4 w-4" /> Explore live rooms
               </Link>
-              <Link href="/admin" className="btn-ghost w-full sm:w-auto">
-                <ShieldCheck className="h-4 w-4" /> Open admin dashboard
-              </Link>
+              <StartRoomButton variant="ghost" className="w-full sm:w-auto" />
             </div>
           </motion.div>
 

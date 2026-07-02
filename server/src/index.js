@@ -9,6 +9,8 @@ import { sendMail, emailEnabled, reportEmail, joinEmailHtml, digestHtml } from "
 const PORT = process.env.PORT || 4000;
 const ORIGIN = process.env.CLIENT_ORIGIN || "*";
 const ADMIN_CODE = process.env.ADMIN_CODE || "mbuzi-admin-2026";
+// separate SUPER-ADMIN code → makes you owner/super-admin (uncapped, undemotable)
+const SUPER_ADMIN_CODE = process.env.SUPER_ADMIN_CODE || "mbuzi-super-2026";
 // the person with this username auto-becomes the platform owner (admin, uncapped)
 const OWNER_USERNAME = (process.env.OWNER_USERNAME || "").trim().toLowerCase();
 
@@ -191,14 +193,18 @@ io.on("connection", (socket) => {
     if (state.users.some((u) => u.username.toLowerCase() === name.toLowerCase()))
       return socket.emit("auth:error", { message: "That username is taken — try another." });
 
-    // the platform owner (OWNER_USERNAME) is auto-admin and skips the code + cap
+    // Codes: SUPER_ADMIN_CODE → owner/super-admin (uncapped, undemotable);
+    // ADMIN_CODE → regular admin (capped). OWNER_USERNAME is also a super-admin.
     const isOwnerName = OWNER_USERNAME && name.toLowerCase() === OWNER_USERNAME;
+    const code = payload.adminCode;
     let role = "member";
-    if (isOwnerName) {
+    let makeSuper = false;
+    if (isOwnerName || (code && code === SUPER_ADMIN_CODE)) {
       role = "admin";
-    } else if (payload.adminCode) {
-      if (payload.adminCode !== ADMIN_CODE)
-        return socket.emit("auth:error", { message: "Invalid admin code." });
+      makeSuper = true;
+    } else if (code) {
+      if (code !== ADMIN_CODE)
+        return socket.emit("auth:error", { message: "Invalid code." });
       const activeAdmins = state.users.filter((u) => u.role === "admin" && u.sockets.size > 0).length;
       if (activeAdmins >= MAX_ADMINS)
         return socket.emit("auth:error", { message: `All ${MAX_ADMINS} admin seats are in use — join as a member.` });
@@ -217,14 +223,10 @@ io.on("connection", (socket) => {
       following: false,
       color: PALETTE[hashStr(name) % PALETTE.length],
       dynamic: true,
-      owner: false,
+      owner: makeSuper, // super-admins are undemotable owners
       sockets: new Set(),
     };
-    // first admin to ever join becomes the platform owner (uncapped, undemotable)
-    if (role === "admin" && !state.owner) {
-      state.owner = u.id;
-      u.owner = true;
-    }
+    if (makeSuper && !state.owner) state.owner = u.id;
     state.users.push(u);
     const token = nanoid(24);
     sessions.set(u.id, { token, username: name });
@@ -234,7 +236,7 @@ io.on("connection", (socket) => {
     socket.emit("auth:ok", { user: stripSockets(u), token });
     emitInit(socket);
     broadcastUsers();
-    if (role === "admin") logMod(u.id, u.owner ? `joined as the platform owner` : `joined as an admin`);
+    if (role === "admin") logMod(u.id, u.owner ? `joined as SUPER ADMIN (owner)` : `joined as an admin`);
     // record & email the join
     recordActivity("join", u);
     sendMail(`👋 ${u.username} joined Mbuzis Daily`, joinEmailHtml(u, onlineNow())).catch(() => {});
@@ -272,8 +274,8 @@ io.on("connection", (socket) => {
     if (!caller || caller.role !== "admin") return;
     const t = userById(target);
     if (!t || t.role !== "admin") return;
-    if (state.owner === t.id)
-      return socket.emit("toast", { title: "Can't demote the owner", body: `${t.username} owns this platform.`, tone: "warn" });
+    if (t.owner)
+      return socket.emit("toast", { title: "Can't demote a super admin", body: `${t.username} is a platform owner.`, tone: "warn" });
     t.role = "member";
     logMod(caller.id, `removed admin from ${t.username}`);
     recordActivity("demote", t, caller);

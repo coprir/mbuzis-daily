@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Mail, Phone, Chrome, ShieldCheck, Radio, Bell, MonitorSmartphone, LogOut } from "lucide-react";
+import { Mail, Phone, Chrome, ShieldCheck, Radio, Bell, MonitorSmartphone, LogOut, Crown } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Avatar from "@/components/Avatar";
 import { useStore } from "@/lib/store";
@@ -37,11 +37,15 @@ export default function Profile() {
                 <div className="pb-1">
                   <div className="flex items-center gap-2">
                     <h1 className="font-display text-2xl font-bold text-sand-50">{me.username}</h1>
-                    {me.role === "admin" && (
+                    {me.owner ? (
+                      <span className="chip border border-honey-500/30 bg-honey-500/10 text-honey-400">
+                        <Crown className="h-3.5 w-3.5" /> Super admin
+                      </span>
+                    ) : me.role === "admin" ? (
                       <span className="chip border border-ember-500/30 bg-ember-500/10 text-ember-400">
                         <ShieldCheck className="h-3.5 w-3.5" /> Admin
                       </span>
-                    )}
+                    ) : null}
                     {me.role === "host" && (
                       <span className="chip border border-honey-500/25 bg-honey-500/10 text-honey-400">Host</span>
                     )}

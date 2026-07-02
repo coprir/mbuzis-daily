@@ -6,6 +6,7 @@ import { Search, Sparkles } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import RoomCard from "@/components/RoomCard";
 import PresenceList from "@/components/PresenceList";
+import StartRoomButton from "@/components/StartRoomButton";
 import { useStore } from "@/lib/store";
 
 const cats = ["All", "Lifestyle", "Music", "Business", "Sports", "Arts", "Tech"];
@@ -27,9 +28,12 @@ export default function Explore() {
     <main className="min-h-screen">
       <Navbar />
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <div className="mb-6">
-          <h1 className="font-display text-2xl font-bold text-sand-50 sm:text-3xl">Explore live rooms</h1>
-          <p className="mt-1 text-sand-500">Jump into the conversation — knock and an admin waves you in.</p>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-sand-50 sm:text-3xl">Explore live rooms</h1>
+            <p className="mt-1 text-sand-500">Jump into the conversation — knock and an admin waves you in.</p>
+          </div>
+          <StartRoomButton />
         </div>
 
         {rec && (

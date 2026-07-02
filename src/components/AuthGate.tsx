@@ -88,15 +88,15 @@ function JoinScreen() {
               className="overflow-hidden"
             >
               <div className="mt-3">
-                <label className="text-xs font-bold uppercase tracking-widest text-sand-500">Admin code</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-sand-500">Admin / super-admin code</label>
                 <input
                   value={adminCode}
                   onChange={(e) => setAdminCode(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && submit()}
-                  placeholder="Enter admin code"
+                  placeholder="Enter your code"
                   className="mt-1.5 w-full rounded-2xl border border-ember-500/30 bg-ember-500/[0.06] px-4 py-3 text-sm text-sand-50 transition-colors placeholder:text-sand-500/70 focus:border-ember-500/60 focus:outline-none"
                 />
-                <p className="mt-1 text-[11px] text-sand-500">Grants admin powers (max 3 admins online).</p>
+                <p className="mt-1 text-[11px] text-sand-500">Admin code = moderator (max 3). Super-admin code = full owner control.</p>
               </div>
             </motion.div>
           )}

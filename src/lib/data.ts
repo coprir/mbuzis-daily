@@ -14,6 +14,7 @@ export interface User {
   followers: number;
   following: boolean;
   color: string;
+  owner?: boolean; // super-admin / platform owner
 }
 
 export interface Participant {
