@@ -10,10 +10,13 @@
     "dev": "node --watch src/index.js"
   },
   "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "nanoid": "^5.0.7",
     "nodemailer": "^6.10.1",
+    "pg": "^8.22.0",
+    "redis": "^4.7.1",
     "socket.io": "^4.7.5"
   }
 }

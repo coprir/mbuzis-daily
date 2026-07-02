@@ -5,6 +5,8 @@ import { Server } from "socket.io";
 import { nanoid } from "nanoid";
 import { makeUsers, makeRooms, TRENDING_TOPICS, MAX_ADMINS } from "./seed.js";
 import { sendMail, emailEnabled, reportEmail, joinEmailHtml, digestHtml } from "./mailer.js";
+import { initDb, loadAll, saveUser, saveSession, saveActivity, saveModLog, saveKv } from "./db.js";
+import { attachRedis } from "./redis.js";
 
 const PORT = process.env.PORT || 4000;
 const ORIGIN = process.env.CLIENT_ORIGIN || "*";
@@ -55,6 +57,7 @@ function recordActivity(type, u, actor) {
   const item = { id: nanoid(), type, at: Date.now(), username: u.username, userId: u.id, role: u.role, actor: actor?.username };
   state.activity = [item, ...state.activity].slice(0, 300);
   io.emit("activity:new", item);
+  saveActivity(item);
   return item;
 }
 const roomById = (id) => state.rooms.find((r) => r.id === id);
@@ -108,6 +111,7 @@ function logMod(actorId, action) {
   const entry = { id: nanoid(), at: Date.now(), actor: u?.username ?? "Admin", action };
   state.modLogs = [entry, ...state.modLogs].slice(0, 60);
   io.emit("mod:log", entry);
+  saveModLog(entry);
 }
 
 // ---------------------------------------------------------------------------
@@ -226,13 +230,15 @@ io.on("connection", (socket) => {
       owner: makeSuper, // super-admins are undemotable owners
       sockets: new Set(),
     };
-    if (makeSuper && !state.owner) state.owner = u.id;
+    if (makeSuper && !state.owner) { state.owner = u.id; saveKv("owner", u.id); }
     state.users.push(u);
     const token = nanoid(24);
     sessions.set(u.id, { token, username: name });
     userId = u.id;
     u.sockets.add(socket.id);
     socket.data.userId = userId;
+    saveUser(u);
+    saveSession(u.id, token, name);
     socket.emit("auth:ok", { user: stripSockets(u), token });
     emitInit(socket);
     broadcastUsers();
@@ -263,6 +269,7 @@ io.on("connection", (socket) => {
     if (activeAdmins >= MAX_ADMINS)
       return socket.emit("toast", { title: "Admin seats full", body: `Max ${MAX_ADMINS} admins online at once.`, tone: "warn" });
     t.role = "admin";
+    saveUser(t);
     logMod(caller.id, `promoted ${t.username} to admin`);
     recordActivity("promote", t, caller);
     broadcastUsers();
@@ -277,6 +284,7 @@ io.on("connection", (socket) => {
     if (t.owner)
       return socket.emit("toast", { title: "Can't demote a super admin", body: `${t.username} is a platform owner.`, tone: "warn" });
     t.role = "member";
+    saveUser(t);
     logMod(caller.id, `removed admin from ${t.username}`);
     recordActivity("demote", t, caller);
     broadcastUsers();
@@ -555,6 +563,29 @@ if (DIGEST_MINUTES > 0) {
   console.log(`🗓️  periodic log digest every ${DIGEST_MINUTES} min`);
 }
 
-server.listen(PORT, () => {
-  console.log(`⚡ Mbuzis Daily realtime server on :${PORT} (origin: ${ORIGIN})`);
-});
+// Boot: connect Postgres + Redis (both optional), restore persisted state.
+async function boot() {
+  await initDb();
+  const loaded = await loadAll();
+  if (loaded) {
+    // re-add persisted registered users (offline until they reconnect)
+    for (const u of loaded.users) {
+      if (!userById(u.id)) state.users.push(u);
+    }
+    for (const [id, sess] of loaded.sessions) sessions.set(id, sess);
+    // merge persisted activity / logs (dedupe by id), newest first
+    const seenA = new Set(state.activity.map((a) => a.id));
+    state.activity = [...state.activity, ...loaded.activity.filter((a) => !seenA.has(a.id))]
+      .sort((a, b) => b.at - a.at).slice(0, 300);
+    const seenL = new Set(state.modLogs.map((l) => l.id));
+    state.modLogs = [...state.modLogs, ...loaded.modLogs.filter((l) => !seenL.has(l.id))]
+      .sort((a, b) => b.at - a.at).slice(0, 60);
+    if (loaded.owner) state.owner = loaded.owner;
+    console.log(`🗄️  restored ${loaded.users.length} accounts, ${loaded.sessions.length} sessions, ${loaded.activity.length} activity`);
+  }
+  await attachRedis(io);
+  server.listen(PORT, () => {
+    console.log(`⚡ Mbuzis Daily realtime server on :${PORT} (origin: ${ORIGIN})`);
+  });
+}
+boot();

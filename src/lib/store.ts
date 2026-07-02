@@ -80,6 +80,7 @@ interface State {
   authError: string | null;
   authPending: boolean;
   setLiveMode: (v: boolean) => void;
+  enterDemoMode: () => void;
   setEmit: (emit: State["emit"]) => void;
   setSocketReady: (v: boolean) => void;
   setConnected: (v: boolean) => void;
@@ -191,6 +192,7 @@ export const useStore = create<State>((set, get) => {
     admittedRooms: [],
 
     setLiveMode: (v) => set({ liveMode: v }),
+    enterDemoMode: () => set({ liveMode: false }), // fall back to local demo if the server is unreachable
     setEmit: (emit) => set({ emit }),
     setSocketReady: (v) => set((s) => ({ socketReady: v, connected: v ? s.connected : false })),
     setConnected: (v) => set({ connected: v }),

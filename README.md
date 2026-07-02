@@ -76,12 +76,26 @@ The demo "you" is **Zawadi Mwangi**, one of the 3 platform admins, so the admin 
 ### Production hardening (roadmap)
 Swap the server's in-memory state for **PostgreSQL** (accounts, rooms, logs) + **Redis** (presence/session fan-out, Socket.IO adapter for horizontal scale). Add real auth (email + Google OAuth + phone OTP), a TURN server, and an SFU for large rooms. All containerized via the included Dockerfiles.
 
-## Deployment
+## Deployment (make it a real, always-on site)
 
 The frontend and realtime server deploy separately (the Socket.IO server needs a long-lived host, not serverless).
 
-1. **Realtime server → Render / Railway / Fly.** A `render.yaml` blueprint is included. Set `CLIENT_ORIGIN` to your web app's URL.
-2. **Web app → Vercel** (`vercel.json` included) or the Docker web service. Set `NEXT_PUBLIC_SOCKET_URL` to the deployed server URL **at build time** (it's inlined into the client bundle).
+### 1. Realtime server + Postgres + Redis → Render (one click)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/coprir/mbuzis-daily)
+
+The included `render.yaml` **blueprint provisions everything** — the server, a persistent **Postgres** database (accounts, sessions, activity & logs survive restarts), and **Redis** (Socket.IO adapter for scale) — and wires `DATABASE_URL` / `REDIS_URL` automatically.
+
+After the first deploy, set these in the Render dashboard (marked `sync: false`):
+- `SUPER_ADMIN_CODE` — your private owner code
+- `ADMIN_CODE` — the shared moderator code
+- `SMTP_URL` — for real email (Gmail app password: `smtps://you%40gmail.com:app-pass@smtp.gmail.com:465`)
+
+> Persistence and email are **optional and auto-detected**: with no `DATABASE_URL` the server runs on in-memory state; with no `SMTP_URL` email is a safe no-op. Set them to turn each on — no code change.
+
+### 2. Web app → Vercel
+
+`vercel.json` is included. Set `NEXT_PUBLIC_SOCKET_URL` to your Render server URL (**at build time** — it's inlined into the client bundle), then set the server's `CLIENT_ORIGIN` to your Vercel URL. If the server is ever unreachable, the app degrades gracefully to demo mode.
 
 ## Project structure
 

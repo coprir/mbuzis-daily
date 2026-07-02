@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Radio, ArrowRight, ShieldCheck, Loader2, Wifi, WifiOff } from "lucide-react";
 import { useStore, onlineCount } from "@/lib/store";
@@ -24,9 +24,18 @@ function JoinScreen() {
   const users = useStore((s) => s.users);
   const online = onlineCount(users);
 
+  const enterDemoMode = useStore((s) => s.enterDemoMode);
   const [username, setUsername] = useState("");
   const [showAdmin, setShowAdmin] = useState(false);
   const [adminCode, setAdminCode] = useState("");
+  const [slow, setSlow] = useState(false);
+
+  // if the server can't be reached in a few seconds, offer a demo fallback
+  useEffect(() => {
+    if (socketReady) return;
+    const t = setTimeout(() => setSlow(true), 9000);
+    return () => clearTimeout(t);
+  }, [socketReady]);
 
   const canSubmit = username.trim().length >= 2 && socketReady && !authPending;
   const submit = () => {
@@ -139,6 +148,15 @@ function JoinScreen() {
             )}
           </span>
         </div>
+
+        {slow && !socketReady && (
+          <p className="mt-4 text-center text-xs text-sand-500">
+            Taking a while to reach the server.{" "}
+            <button onClick={enterDemoMode} className="font-semibold text-ember-400 underline">
+              Browse in demo mode
+            </button>
+          </p>
+        )}
       </motion.div>
     </main>
   );
