@@ -90,6 +90,16 @@ export function initSocket(): Socket | null {
   socket.on("meta:update", ({ roomId, userId, pstate }) => useStore.getState().setMetaEntry(roomId, userId, pstate));
   socket.on("meta:bulk", (meta) => useStore.getState().setMetaBulk(meta));
 
+  // ---- activity / roles ----
+  socket.on("activity:new", (a) => useStore.getState().addActivity(a));
+  socket.on("role:changed", ({ role }) =>
+    useStore.getState().pushToast({
+      title: role === "admin" ? "⭐ You're now an admin" : "Role updated",
+      body: role === "admin" ? "You can moderate and manage rooms." : "You're now a member.",
+      tone: role === "admin" ? "success" : "info",
+    })
+  );
+
   // ---- mod logs / follow / announcements / toasts ----
   socket.on("mod:log", (entry) => useStore.getState().addModLog(entry));
   socket.on("user:followed", ({ userId, following, followers }) =>

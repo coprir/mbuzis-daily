@@ -4,10 +4,13 @@ import cors from "cors";
 import { Server } from "socket.io";
 import { nanoid } from "nanoid";
 import { makeUsers, makeRooms, TRENDING_TOPICS, MAX_ADMINS } from "./seed.js";
+import { sendMail, emailEnabled, reportEmail, joinEmailHtml, digestHtml } from "./mailer.js";
 
 const PORT = process.env.PORT || 4000;
 const ORIGIN = process.env.CLIENT_ORIGIN || "*";
 const ADMIN_CODE = process.env.ADMIN_CODE || "mbuzi-admin-2026";
+// the person with this username auto-becomes the platform owner (admin, uncapped)
+const OWNER_USERNAME = (process.env.OWNER_USERNAME || "").trim().toLowerCase();
 
 // registered sessions for username auth: userId -> { token, username }
 const sessions = new Map();
@@ -38,9 +41,20 @@ const state = {
     { id: nanoid(), at: Date.now() - 900000, actor: "Zawadi Mwangi", action: "locked Founders Unfiltered" },
   ],
   meta: {}, // roomId -> userId -> { muted, pinned, handRaised, speaking }
+  activity: [], // { id, type: join|promote|demote, username, userId, role, actor, at }
+  owner: null, // userId of the platform owner (first admin / OWNER_USERNAME)
 };
 
 const userById = (id) => state.users.find((u) => u.id === id);
+const onlineNow = () => state.users.filter((u) => derivePresence(u) !== "offline").length;
+const liveRoomCount = () => state.rooms.filter((r) => r.live).length;
+
+function recordActivity(type, u, actor) {
+  const item = { id: nanoid(), type, at: Date.now(), username: u.username, userId: u.id, role: u.role, actor: actor?.username };
+  state.activity = [item, ...state.activity].slice(0, 300);
+  io.emit("activity:new", item);
+  return item;
+}
 const roomById = (id) => state.rooms.find((r) => r.id === id);
 const isPrivileged = (userId, room) => {
   const u = userById(userId);
@@ -79,6 +93,9 @@ function emitInit(socket) {
     meta: state.meta,
     trending: TRENDING_TOPICS,
     maxAdmins: MAX_ADMINS,
+    activity: state.activity,
+    owner: state.owner,
+    emailEnabled: emailEnabled(),
   });
 }
 function publicRooms() {
@@ -174,8 +191,12 @@ io.on("connection", (socket) => {
     if (state.users.some((u) => u.username.toLowerCase() === name.toLowerCase()))
       return socket.emit("auth:error", { message: "That username is taken — try another." });
 
+    // the platform owner (OWNER_USERNAME) is auto-admin and skips the code + cap
+    const isOwnerName = OWNER_USERNAME && name.toLowerCase() === OWNER_USERNAME;
     let role = "member";
-    if (payload.adminCode) {
+    if (isOwnerName) {
+      role = "admin";
+    } else if (payload.adminCode) {
       if (payload.adminCode !== ADMIN_CODE)
         return socket.emit("auth:error", { message: "Invalid admin code." });
       const activeAdmins = state.users.filter((u) => u.role === "admin" && u.sockets.size > 0).length;
@@ -196,8 +217,14 @@ io.on("connection", (socket) => {
       following: false,
       color: PALETTE[hashStr(name) % PALETTE.length],
       dynamic: true,
+      owner: false,
       sockets: new Set(),
     };
+    // first admin to ever join becomes the platform owner (uncapped, undemotable)
+    if (role === "admin" && !state.owner) {
+      state.owner = u.id;
+      u.owner = true;
+    }
     state.users.push(u);
     const token = nanoid(24);
     sessions.set(u.id, { token, username: name });
@@ -207,7 +234,10 @@ io.on("connection", (socket) => {
     socket.emit("auth:ok", { user: stripSockets(u), token });
     emitInit(socket);
     broadcastUsers();
-    if (role === "admin") logMod(u.id, `joined as an admin`);
+    if (role === "admin") logMod(u.id, u.owner ? `joined as the platform owner` : `joined as an admin`);
+    // record & email the join
+    recordActivity("join", u);
+    sendMail(`👋 ${u.username} joined Mbuzis Daily`, joinEmailHtml(u, onlineNow())).catch(() => {});
   });
 
   // ---- sign out ----
@@ -219,6 +249,56 @@ io.on("connection", (socket) => {
     }
     userId = null;
     socket.data.userId = null;
+  });
+
+  // ---- admin management: promote / demote (admins only) ----
+  socket.on("admin:promote", ({ userId: target } = {}) => {
+    const caller = userById(socket.data.userId);
+    if (!caller || caller.role !== "admin") return;
+    const t = userById(target);
+    if (!t || t.role === "admin") return;
+    const activeAdmins = state.users.filter((u) => u.role === "admin" && u.sockets.size > 0).length;
+    if (activeAdmins >= MAX_ADMINS)
+      return socket.emit("toast", { title: "Admin seats full", body: `Max ${MAX_ADMINS} admins online at once.`, tone: "warn" });
+    t.role = "admin";
+    logMod(caller.id, `promoted ${t.username} to admin`);
+    recordActivity("promote", t, caller);
+    broadcastUsers();
+    t.sockets.forEach((sid) => io.to(sid).emit("role:changed", { role: "admin" }));
+  });
+
+  socket.on("admin:demote", ({ userId: target } = {}) => {
+    const caller = userById(socket.data.userId);
+    if (!caller || caller.role !== "admin") return;
+    const t = userById(target);
+    if (!t || t.role !== "admin") return;
+    if (state.owner === t.id)
+      return socket.emit("toast", { title: "Can't demote the owner", body: `${t.username} owns this platform.`, tone: "warn" });
+    t.role = "member";
+    logMod(caller.id, `removed admin from ${t.username}`);
+    recordActivity("demote", t, caller);
+    broadcastUsers();
+    t.sockets.forEach((sid) => io.to(sid).emit("role:changed", { role: "member" }));
+  });
+
+  // ---- email the session-log digest on demand (admins only) ----
+  socket.on("logs:email", async () => {
+    const caller = userById(socket.data.userId);
+    if (!caller || caller.role !== "admin") return;
+    if (!emailEnabled()) {
+      return socket.emit("toast", {
+        title: "Email not configured",
+        body: "Set SMTP_URL on the server to receive logs by email.",
+        tone: "warn",
+      });
+    }
+    const r = await sendMail(
+      "Mbuzis Daily — session log digest",
+      digestHtml({ activity: state.activity, modLogs: state.modLogs, onlineCount: onlineNow(), liveRooms: liveRoomCount() })
+    );
+    socket.emit("toast", r.sent
+      ? { title: "📧 Logs emailed", body: `Sent to ${reportEmail}`, tone: "success" }
+      : { title: "Email failed", body: r.error || "Check server SMTP settings.", tone: "warn" });
   });
 
   // ---- create room ----
@@ -459,6 +539,19 @@ setInterval(() => {
   }
   io.emit("meta:bulk", state.meta);
 }, 2400);
+
+// Optional recurring email digest of all session logs (set DIGEST_MINUTES).
+const DIGEST_MINUTES = Number(process.env.DIGEST_MINUTES || 0);
+if (DIGEST_MINUTES > 0) {
+  setInterval(() => {
+    if (!emailEnabled()) return;
+    sendMail(
+      "Mbuzis Daily — periodic session log digest",
+      digestHtml({ activity: state.activity, modLogs: state.modLogs, onlineCount: onlineNow(), liveRooms: liveRoomCount() })
+    ).catch(() => {});
+  }, DIGEST_MINUTES * 60000);
+  console.log(`🗓️  periodic log digest every ${DIGEST_MINUTES} min`);
+}
 
 server.listen(PORT, () => {
   console.log(`⚡ Mbuzis Daily realtime server on :${PORT} (origin: ${ORIGIN})`);

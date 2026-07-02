@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck, Check, X, Plus, Lock, Unlock, Radio, Megaphone, ScrollText,
-  Users, Gauge, Trash2,
+  Users, Gauge, Trash2, Crown, UserPlus, UserMinus, Mail,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Avatar from "@/components/Avatar";
@@ -21,7 +21,9 @@ function ago(ts: number) {
 
 export default function Admin() {
   const {
-    users, rooms, requests, modLogs, resolveRequest, toggleLock, endRoom, createRoom, announce, removeUser,
+    users, rooms, requests, modLogs, activity, owner, emailEnabled,
+    resolveRequest, toggleLock, endRoom, createRoom, announce, removeUser,
+    promoteUser, demoteUser, emailLogs,
   } = useStore();
   const meId = useStore((s) => s.currentUserId);
   const userById = (id: string) => users.find((u) => u.id === id);
@@ -30,6 +32,9 @@ export default function Admin() {
   const admins = users.filter((u) => u.role === "admin");
   const pending = requests.filter((r) => r.status === "pending");
   const liveRooms = rooms.filter((r) => r.live);
+  // registered (real) users have ids starting with "g"; seed bots are u1..u20
+  const isRegistered = (id: string) => id.startsWith("g");
+  const promotable = users.filter((u) => isRegistered(u.id) && u.role !== "admin" && u.presence !== "offline");
 
   const [showCreate, setShowCreate] = useState(false);
   const [ann, setAnn] = useState("");
@@ -182,23 +187,91 @@ export default function Admin() {
               <h2 className="mb-1 flex items-center gap-2 font-display font-bold text-sand-50">
                 <ShieldCheck className="h-4 w-4 text-ember-400" /> Platform admins
               </h2>
-              <p className="mb-3 text-xs text-sand-500">Hard cap of {MAX_ADMINS} admins across all of Mbuzis Daily.</p>
+              <p className="mb-3 text-xs text-sand-500">Owner + up to {MAX_ADMINS} active admins. Promote trusted people — no code to share.</p>
               <div className="space-y-2">
                 {admins.map((a) => (
                   <div key={a.id} className="flex items-center gap-3 rounded-2xl border border-sand-50/[0.07] bg-sand-50/[0.03] p-2.5">
                     <Avatar user={a} size="sm" />
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-sand-50">{a.username}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-sand-50">{a.username}</p>
                       <p className="text-[11px] text-sand-500">@{a.handle}</p>
                     </div>
-                    <span className="chip border border-ember-500/30 bg-ember-500/10 text-ember-400">admin</span>
+                    {owner === a.id ? (
+                      <span className="chip border border-honey-500/30 bg-honey-500/10 text-honey-400"><Crown className="h-3 w-3" /> owner</span>
+                    ) : (
+                      <>
+                        <span className="chip border border-ember-500/30 bg-ember-500/10 text-ember-400">admin</span>
+                        <button
+                          onClick={() => demoteUser(a.id)}
+                          className="chip border border-sand-50/10 text-sand-500 hover:border-flame-500/40 hover:text-flame-400"
+                          title="Remove admin"
+                        >
+                          <UserMinus className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 ))}
-                {Array.from({ length: MAX_ADMINS - admins.length }).map((_, i) => (
-                  <div key={i} className="rounded-2xl border border-dashed border-sand-50/10 p-2.5 text-center text-xs text-sand-500/70">
-                    Empty admin seat
+              </div>
+
+              {promotable.length > 0 && (
+                <div className="mt-4">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-sand-500">Promote a member</p>
+                  <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
+                    {promotable.map((u) => (
+                      <div key={u.id} className="flex items-center gap-2 rounded-2xl border border-sand-50/[0.07] bg-sand-50/[0.03] p-2">
+                        <Avatar user={u} size="sm" />
+                        <span className="min-w-0 flex-1 truncate text-sm text-sand-100">{u.username}</span>
+                        <button
+                          onClick={() => promoteUser(u.id)}
+                          className="chip border border-ember-500/30 bg-ember-500/10 text-ember-400 hover:bg-ember-500/20"
+                        >
+                          <UserPlus className="h-3.5 w-3.5" /> Make admin
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+              )}
+            </section>
+
+            {/* Who joined the platform */}
+            <section className="panel p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 font-display font-bold text-sand-50">
+                  <UserPlus className="h-4 w-4 text-mint-400" /> Who&apos;s joined
+                </h2>
+                <span className="chip border border-mint-400/20 bg-mint-400/10 text-mint-300">
+                  {activity.filter((a) => a.type === "join").length} total
+                </span>
+              </div>
+              <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                {activity.length === 0 && (
+                  <p className="py-6 text-center text-sm text-sand-500">No sign-ups yet. Share your link!</p>
+                )}
+                <AnimatePresence initial={false}>
+                  {activity.map((a) => (
+                    <motion.div
+                      key={a.id}
+                      layout
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-2 rounded-xl border border-sand-50/[0.05] bg-sand-50/[0.02] px-3 py-2"
+                    >
+                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs ${
+                        a.type === "join" ? "bg-mint-400/15 text-mint-400" : a.type === "promote" ? "bg-ember-500/15 text-ember-400" : "bg-flame-500/15 text-flame-400"
+                      }`}>
+                        {a.type === "join" ? "👋" : a.type === "promote" ? "⭐" : "↓"}
+                      </span>
+                      <p className="min-w-0 flex-1 truncate text-xs text-sand-300">
+                        <b className="text-sand-50">{a.username}</b>{" "}
+                        {a.type === "join" ? `joined as ${a.role}` : a.type === "promote" ? "was made admin" : "was demoted"}
+                        {a.actor ? ` by ${a.actor}` : ""}
+                      </p>
+                      <span className="shrink-0 text-[10px] text-sand-500/70">{mounted ? ago(a.at) : ""}</span>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             </section>
 
@@ -224,9 +297,21 @@ export default function Admin() {
 
             {/* Moderation logs */}
             <section className="panel p-5">
-              <h2 className="mb-3 flex items-center gap-2 font-display font-bold text-sand-50">
-                <ScrollText className="h-4 w-4 text-sand-300" /> Moderation logs
-              </h2>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="flex items-center gap-2 font-display font-bold text-sand-50">
+                  <ScrollText className="h-4 w-4 text-sand-300" /> Session logs
+                </h2>
+                <button
+                  onClick={emailLogs}
+                  className="chip border border-sand-50/10 bg-sand-50/[0.04] text-sand-300 hover:border-ember-500/40 hover:text-ember-400"
+                  title={emailEnabled ? "Email the full log digest" : "Set SMTP_URL on the server to enable"}
+                >
+                  <Mail className="h-3.5 w-3.5" /> Email me{!emailEnabled && " *"}
+                </button>
+              </div>
+              {!emailEnabled && (
+                <p className="mb-2 text-[11px] text-sand-500/80">* Email off — set <code className="text-ember-400">SMTP_URL</code> on the server to receive logs + join alerts.</p>
+              )}
               <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                 <AnimatePresence initial={false}>
                   {modLogs.map((l) => (

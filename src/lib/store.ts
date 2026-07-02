@@ -39,6 +39,16 @@ export interface ModLog {
   action: string;
 }
 
+export interface ActivityItem {
+  id: string;
+  type: "join" | "promote" | "demote";
+  at: number;
+  username: string;
+  userId: string;
+  role?: string;
+  actor?: string;
+}
+
 export interface PState {
   muted: boolean;
   pinned: boolean;
@@ -56,6 +66,9 @@ interface State {
   toasts: Toast[];
   modLogs: ModLog[];
   meta: Record<string, RoomMeta>;
+  activity: ActivityItem[];
+  owner: string | null;
+  emailEnabled: boolean;
   currentUserId: string;
 
   // networking + auth
@@ -97,6 +110,9 @@ interface State {
   react: (roomId: string, emoji: string) => void;
   toggleFollow: (userId: string) => void;
   announce: (text: string) => void;
+  promoteUser: (userId: string) => void;
+  demoteUser: (userId: string) => void;
+  emailLogs: () => void;
   logMod: (actorId: string, action: string) => void;
   pushToast: (t: Omit<Toast, "id">) => void;
   dismissToast: (id: string) => void;
@@ -110,8 +126,12 @@ interface State {
     requests?: JoinRequest[];
     modLogs?: ModLog[];
     meta?: Record<string, RoomMeta>;
+    activity?: ActivityItem[];
+    owner?: string | null;
+    emailEnabled?: boolean;
   }) => void;
   applyUsers: (u: User[]) => void;
+  addActivity: (a: ActivityItem) => void;
   upsertRoom: (room: Room) => void;
   addRequest: (r: JoinRequest) => void;
   applyRequestResolved: (r: JoinRequest) => void;
@@ -157,6 +177,9 @@ export const useStore = create<State>((set, get) => {
       { id: uid(), at: Date.now() - 900000, actor: "Zawadi Mwangi", action: "locked Founders Unfiltered" },
     ],
     meta: {},
+    activity: [],
+    owner: null,
+    emailEnabled: false,
     currentUserId,
     connected: false,
     socketReady: false,
@@ -358,6 +381,23 @@ export const useStore = create<State>((set, get) => {
       get().pushToast({ title: "📣 Announcement sent", body: text, tone: "success" });
     },
 
+    promoteUser: (userId) => {
+      if (route("admin:promote", { userId })) return;
+      set((s) => ({ users: s.users.map((u) => (u.id === userId ? { ...u, role: "admin" } : u)) }));
+      const u = get().users.find((x) => x.id === userId);
+      get().logMod(get().currentUserId, `promoted ${u?.username} to admin`);
+    },
+    demoteUser: (userId) => {
+      if (route("admin:demote", { userId })) return;
+      set((s) => ({ users: s.users.map((u) => (u.id === userId ? { ...u, role: "member" } : u)) }));
+      const u = get().users.find((x) => x.id === userId);
+      get().logMod(get().currentUserId, `removed admin from ${u?.username}`);
+    },
+    emailLogs: () => {
+      if (route("logs:email")) return;
+      get().pushToast({ title: "Connect to the live server", body: "Log emails send from the realtime server.", tone: "warn" });
+    },
+
     pushToast: (t) => {
       const id = uid();
       set((s) => ({ toasts: [...s.toasts, { ...t, id }] }));
@@ -374,9 +414,14 @@ export const useStore = create<State>((set, get) => {
         requests: p.requests ?? s.requests,
         modLogs: p.modLogs ?? s.modLogs,
         meta: p.meta ?? s.meta,
+        activity: p.activity ?? s.activity,
+        owner: p.owner ?? s.owner,
+        emailEnabled: p.emailEnabled ?? s.emailEnabled,
       }));
     },
     applyUsers: (u) => set({ users: u }),
+    addActivity: (a) =>
+      set((s) => (s.activity.some((x) => x.id === a.id) ? s : { activity: [a, ...s.activity].slice(0, 300) })),
     upsertRoom: (room) =>
       set((s) => {
         const exists = s.rooms.some((r) => r.id === room.id);
