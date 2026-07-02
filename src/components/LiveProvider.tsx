@@ -30,7 +30,7 @@ export default function LiveProvider({ children }: { children: React.ReactNode }
     <>
       <AuthGate>{children}</AuthGate>
       {connected && (
-        <div className="fixed bottom-5 left-5 z-[100] hidden items-center gap-2 rounded-full border border-neon-lime/30 bg-neon-lime/10 px-3 py-1.5 text-xs font-semibold text-neon-lime backdrop-blur sm:flex">
+        <div className="fixed bottom-5 left-5 z-[100] hidden items-center gap-2 rounded-full border border-mint-400/30 bg-mint-400/10 px-3 py-1.5 text-xs font-bold text-mint-300 backdrop-blur sm:flex">
           <Wifi className="h-3.5 w-3.5" /> Live server connected
         </div>
       )}
@@ -42,22 +42,22 @@ export default function LiveProvider({ children }: { children: React.ReactNode }
               initial={{ opacity: 0, x: 40, scale: 0.95 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 40, scale: 0.95 }}
-              className="glass flex items-start gap-3 p-3.5"
+              className="panel flex items-start gap-3 rounded-2xl p-3.5"
             >
               <span className="mt-0.5">
                 {t.tone === "success" ? (
-                  <CheckCircle2 className="h-5 w-5 text-neon-lime" />
+                  <CheckCircle2 className="h-5 w-5 text-mint-400" />
                 ) : t.tone === "warn" ? (
-                  <AlertTriangle className="h-5 w-5 text-neon-amber" />
+                  <AlertTriangle className="h-5 w-5 text-honey-400" />
                 ) : (
-                  <Info className="h-5 w-5 text-neon-cyan" />
+                  <Info className="h-5 w-5 text-ember-400" />
                 )}
               </span>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-white">{t.title}</p>
-                {t.body && <p className="mt-0.5 text-xs text-white/60">{t.body}</p>}
+                <p className="text-sm font-semibold text-sand-50">{t.title}</p>
+                {t.body && <p className="mt-0.5 text-xs text-sand-300/80">{t.body}</p>}
               </div>
-              <button onClick={() => dismiss(t.id)} className="text-white/40 hover:text-white">
+              <button onClick={() => dismiss(t.id)} className="text-sand-500 hover:text-sand-50">
                 <X className="h-4 w-4" />
               </button>
             </motion.div>

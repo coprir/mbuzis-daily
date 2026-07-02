@@ -24,18 +24,23 @@ export default function Navbar() {
   const online = onlineCount(users);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/5 bg-base-900/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-sand-50/[0.06] bg-ink-950/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-neon-violet to-neon-fuchsia font-black text-white shadow-lg shadow-neon-violet/40">
+            <div
+              className="grid h-9 w-9 place-items-center rounded-2xl font-display font-bold text-ink-950 shadow-ember"
+              style={{ background: "linear-gradient(135deg,#ffc24d,#ff6a2b 60%,#f04e0f)" }}
+            >
               M
             </div>
             <div className="leading-none">
-              <p className="font-display text-lg font-extrabold tracking-tight">
-                Mbuzis <span className="neon-text">Daily</span>
+              <p className="font-display text-lg font-bold tracking-tight text-sand-50">
+                Mbuzis <span className="text-flare">Daily</span>
               </p>
-              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/40">Live · Social · Loud</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-honey-400/80">
+                Live · Social · Loud
+              </p>
             </div>
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
@@ -45,18 +50,19 @@ export default function Navbar() {
                 <Link
                   key={l.href}
                   href={l.href}
-                  className={`relative flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
-                    active ? "text-white" : "text-white/55 hover:text-white"
+                  className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                    active ? "text-sand-50" : "text-sand-500 hover:text-sand-100"
                   }`}
                 >
-                  <l.icon className="h-4 w-4" />
-                  {l.label}
                   {active && (
                     <motion.span
-                      layoutId="nav-underline"
-                      className="absolute inset-x-2 -bottom-[9px] h-0.5 rounded-full bg-gradient-to-r from-neon-violet to-neon-cyan"
+                      layoutId="nav-pill"
+                      className="absolute inset-0 rounded-full border border-ember-500/25 bg-ember-500/10"
+                      transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
                     />
                   )}
+                  <l.icon className={`relative h-4 w-4 ${active ? "text-ember-400" : ""}`} />
+                  <span className="relative">{l.label}</span>
                 </Link>
               );
             })}
@@ -64,36 +70,38 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 sm:flex">
+          <div className="hidden items-center gap-2 rounded-full border border-mint-400/20 bg-mint-400/[0.07] px-3 py-1.5 sm:flex">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neon-lime opacity-70" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-neon-lime" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-70" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-mint-400" />
             </span>
-            <span className="text-xs font-semibold text-white/80">{online} online</span>
+            <span className="text-xs font-bold text-mint-300">{online} online</span>
           </div>
           {me && (
             <Link href="/profile" className="hidden items-center gap-2 sm:flex">
               <Avatar user={me} size="sm" />
             </Link>
           )}
-          <button className="md:hidden text-white" onClick={() => setOpen((o) => !o)}>
+          <button className="text-sand-50 md:hidden" onClick={() => setOpen((o) => !o)}>
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
       </div>
 
       {open && (
-        <nav className="border-t border-white/5 px-4 py-3 md:hidden">
+        <nav className="border-t border-sand-50/[0.06] px-4 py-3 md:hidden">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium ${
-                path === l.href ? "bg-white/10 text-white" : "text-white/60"
+              className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold ${
+                path === l.href
+                  ? "border border-ember-500/25 bg-ember-500/10 text-sand-50"
+                  : "text-sand-500"
               }`}
             >
-              <l.icon className="h-4 w-4" />
+              <l.icon className={`h-4 w-4 ${path === l.href ? "text-ember-400" : ""}`} />
               {l.label}
             </Link>
           ))}

@@ -28,28 +28,31 @@ export default function Explore() {
       <Navbar />
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <div className="mb-6">
-          <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Explore live rooms</h1>
-          <p className="mt-1 text-white/55">Jump into the conversation — knock and an admin waves you in.</p>
+          <h1 className="font-display text-2xl font-bold text-sand-50 sm:text-3xl">Explore live rooms</h1>
+          <p className="mt-1 text-sand-500">Jump into the conversation — knock and an admin waves you in.</p>
         </div>
 
         {rec && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass mb-6 flex flex-col items-start gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
-            style={{ backgroundImage: "linear-gradient(90deg, rgba(139,92,246,0.12), rgba(34,211,238,0.08))" }}
+            className="panel mb-6 flex flex-col items-start gap-4 overflow-hidden p-5 sm:flex-row sm:items-center sm:justify-between"
+            style={{ backgroundImage: "linear-gradient(100deg, rgba(240,78,15,0.14), rgba(245,166,35,0.06) 60%, transparent)" }}
           >
             <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-neon-violet/20 text-neon-violet">
+              <div
+                className="grid h-11 w-11 place-items-center rounded-2xl text-ink-950 shadow-ember"
+                style={{ background: "linear-gradient(135deg,#ffc24d,#ff6a2b 60%,#f04e0f)" }}
+              >
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-neon-violet">AI pick for you</p>
-                <p className="font-display font-bold text-white">{rec.title}</p>
-                <p className="text-sm text-white/55">{rec.topic}</p>
+                <p className="font-display text-xs font-bold uppercase tracking-widest text-ember-400">AI pick for you</p>
+                <p className="font-display font-bold text-sand-50">{rec.title}</p>
+                <p className="text-sm text-sand-500">{rec.topic}</p>
               </div>
             </div>
-            <a href={`/room/${rec.id}`} className="btn-neon w-full sm:w-auto">Join the buzz</a>
+            <a href={`/room/${rec.id}`} className="btn-primary w-full sm:w-auto">Join the buzz</a>
           </motion.div>
         )}
 
@@ -57,12 +60,12 @@ export default function Explore() {
           <div>
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-sand-500" />
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Search rooms & topics…"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-neon-violet/50 focus:outline-none"
+                  className="field rounded-full py-2.5 pl-10"
                 />
               </div>
               <div className="flex flex-wrap gap-2">
@@ -71,7 +74,9 @@ export default function Explore() {
                     key={c}
                     onClick={() => setCat(c)}
                     className={`chip transition-colors ${
-                      cat === c ? "bg-neon-violet text-white" : "bg-white/5 text-white/60 hover:text-white"
+                      cat === c
+                        ? "bg-ember-500 font-bold text-ink-950 shadow-ember"
+                        : "border border-sand-50/10 bg-sand-50/[0.04] text-sand-300 hover:border-sand-50/25 hover:text-sand-50"
                     }`}
                   >
                     {c}
@@ -87,7 +92,7 @@ export default function Explore() {
                 ))}
               </div>
             ) : (
-              <div className="glass grid place-items-center p-16 text-center text-white/50">
+              <div className="panel grid place-items-center p-16 text-center text-sand-500">
                 No rooms match that. Try another category.
               </div>
             )}

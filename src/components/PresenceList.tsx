@@ -25,12 +25,14 @@ export default function PresenceList({ compact = false }: { compact?: boolean })
     });
 
   return (
-    <div className="glass p-4">
+    <div className="panel p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-display text-sm font-bold uppercase tracking-wide text-white/80">
+        <h3 className="font-display text-sm font-bold uppercase tracking-widest text-sand-300">
           Who&apos;s online
         </h3>
-        <span className="chip bg-neon-lime/15 text-neon-lime">{sorted.filter((u) => u.presence !== "offline").length} live</span>
+        <span className="chip border border-mint-400/20 bg-mint-400/10 text-mint-300">
+          {sorted.filter((u) => u.presence !== "offline").length} live
+        </span>
       </div>
       <div className={`space-y-1 ${compact ? "max-h-[420px]" : "max-h-[620px]"} overflow-y-auto pr-1`}>
         <AnimatePresence initial={false}>
@@ -40,23 +42,23 @@ export default function PresenceList({ compact = false }: { compact?: boolean })
               layout
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-white/5"
+              className="flex items-center gap-3 rounded-2xl px-2 py-2 transition-colors hover:bg-sand-50/[0.04]"
             >
               <Avatar user={u} size="sm" speaking={u.presence === "in-call"} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white">{u.username}</p>
-                <p className="truncate text-[11px] text-white/45">
+                <p className="truncate text-sm font-semibold text-sand-50">{u.username}</p>
+                <p className="truncate text-[11px] text-sand-500">
                   {statusLabel[u.presence]}
-                  {u.role === "admin" && <span className="ml-1 text-neon-fuchsia">· admin</span>}
-                  {u.role === "host" && <span className="ml-1 text-neon-cyan">· host</span>}
+                  {u.role === "admin" && <span className="ml-1 font-semibold text-ember-400">· admin</span>}
+                  {u.role === "host" && <span className="ml-1 font-semibold text-honey-400">· host</span>}
                 </p>
               </div>
               <button
                 onClick={() => toggleFollow(u.id)}
-                className={`grid h-8 w-8 place-items-center rounded-lg border transition-colors ${
+                className={`grid h-8 w-8 place-items-center rounded-full border transition-colors ${
                   u.following
-                    ? "border-neon-violet/40 bg-neon-violet/20 text-neon-violet"
-                    : "border-white/10 text-white/50 hover:text-white"
+                    ? "border-ember-500/40 bg-ember-500/15 text-ember-400"
+                    : "border-sand-50/10 text-sand-500 hover:border-sand-50/25 hover:text-sand-50"
                 }`}
                 title={u.following ? "Following" : "Follow"}
               >

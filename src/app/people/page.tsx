@@ -29,8 +29,8 @@ export default function People() {
     <main className="min-h-screen">
       <Navbar />
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">People on Mbuzis Daily</h1>
-        <p className="mt-1 text-white/55">Follow your favourite hosts and see who&apos;s live right now.</p>
+        <h1 className="font-display text-2xl font-bold text-sand-50 sm:text-3xl">People on Mbuzis Daily</h1>
+        <p className="mt-1 text-sand-500">Follow your favourite hosts and see who&apos;s live right now.</p>
 
         <div className="mt-5 flex flex-wrap gap-2">
           {tabs.map((t) => (
@@ -38,7 +38,9 @@ export default function People() {
               key={t}
               onClick={() => setTab(t)}
               className={`chip transition-colors ${
-                tab === t ? "bg-neon-violet text-white" : "bg-white/5 text-white/60 hover:text-white"
+                tab === t
+                  ? "bg-ember-500 font-bold text-ink-950 shadow-ember"
+                  : "border border-sand-50/10 bg-sand-50/[0.04] text-sand-300 hover:border-sand-50/25 hover:text-sand-50"
               }`}
             >
               {t}
@@ -53,28 +55,32 @@ export default function People() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.03 }}
-              className="glass glass-hover p-5"
+              className="panel panel-hover p-5"
             >
               <div className="flex items-start gap-4">
                 <Avatar user={u} size="lg" speaking={u.presence === "in-call"} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate font-display font-bold text-white">{u.username}</p>
-                    {u.role === "admin" && <span className="chip bg-neon-fuchsia/20 text-neon-fuchsia">admin</span>}
-                    {u.role === "host" && <span className="chip bg-neon-cyan/20 text-neon-cyan">host</span>}
+                    <p className="truncate font-display font-bold text-sand-50">{u.username}</p>
+                    {u.role === "admin" && (
+                      <span className="chip border border-ember-500/30 bg-ember-500/10 text-ember-400">admin</span>
+                    )}
+                    {u.role === "host" && (
+                      <span className="chip border border-honey-500/25 bg-honey-500/10 text-honey-400">host</span>
+                    )}
                   </div>
-                  <p className="text-xs text-white/40">@{u.handle}</p>
-                  <p className="mt-2 line-clamp-2 text-sm text-white/55">{u.bio}</p>
+                  <p className="text-xs text-sand-500">@{u.handle}</p>
+                  <p className="mt-2 line-clamp-2 text-sm text-sand-300/80">{u.bio}</p>
                   <div className="mt-3 flex items-center justify-between">
-                    <span className="text-xs text-white/50">
-                      <b className="text-white">{u.followers.toLocaleString()}</b> followers
+                    <span className="text-xs text-sand-500">
+                      <b className="text-sand-50">{u.followers.toLocaleString()}</b> followers
                     </span>
                     <button
                       onClick={() => toggleFollow(u.id)}
                       className={`chip transition-colors ${
                         u.following
-                          ? "bg-neon-violet/20 text-neon-violet"
-                          : "bg-white/5 text-white/70 hover:text-white"
+                          ? "border border-ember-500/30 bg-ember-500/10 text-ember-400"
+                          : "border border-sand-50/10 bg-sand-50/[0.04] text-sand-300 hover:border-sand-50/25 hover:text-sand-50"
                       }`}
                     >
                       {u.following ? <UserCheck className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}

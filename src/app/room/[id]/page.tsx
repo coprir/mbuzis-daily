@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Mic, MicOff, Hand, Send, LogOut, Lock, Users, Pin, Volume2, Radio,
+  Mic, MicOff, Hand, Send, Lock, Users, Pin, Volume2, Radio,
   ShieldCheck, MoreVertical, UserX, Link2, PhoneOff, Video, VideoOff, Check,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -52,8 +52,8 @@ export default function RoomPage({ params }: { params: { id: string } }) {
       <main className="min-h-screen">
         <Navbar />
         <div className="grid place-items-center py-32 text-center">
-          <p className="text-white/60">This room has ended or doesn&apos;t exist.</p>
-          <Link href="/explore" className="btn-neon mt-4">Back to explore</Link>
+          <p className="text-sand-500">This room has ended or doesn&apos;t exist.</p>
+          <Link href="/explore" className="btn-primary mt-4">Back to explore</Link>
         </div>
       </main>
     );
@@ -64,9 +64,9 @@ export default function RoomPage({ params }: { params: { id: string } }) {
       <main className="min-h-screen">
         <Navbar />
         <div className="grid place-items-center py-32 text-center">
-          <Radio className="h-10 w-10 text-white/30" />
-          <p className="mt-3 text-white/60">“{room.title}” has ended.</p>
-          <Link href="/explore" className="btn-neon mt-4">Find another room</Link>
+          <Radio className="h-10 w-10 text-sand-500/50" />
+          <p className="mt-3 text-sand-500">“{room.title}” has ended.</p>
+          <Link href="/explore" className="btn-primary mt-4">Find another room</Link>
         </div>
       </main>
     );
@@ -79,33 +79,35 @@ export default function RoomPage({ params }: { params: { id: string } }) {
       <main className="min-h-screen">
         <Navbar />
         <div className="mx-auto grid max-w-md place-items-center px-4 py-20 text-center">
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="glass w-full p-8">
-            <div className="mx-auto h-24 w-full rounded-xl" style={{ background: room.thumbnail }} />
-            <h1 className="mt-4 font-display text-xl font-bold text-white">{room.title}</h1>
-            <p className="mt-1 text-sm text-white/55">{room.topic}</p>
-            <div className="mt-4 flex items-center justify-center gap-3 text-sm text-white/60">
-              <span className="chip bg-white/5"><Users className="h-3.5 w-3.5" /> {room.participantIds.length}/{room.capacity}</span>
-              {room.locked && <span className="chip bg-red-500/15 text-red-400"><Lock className="h-3.5 w-3.5" /> Locked</span>}
-              <span className="chip bg-white/5">Host · {host.username}</span>
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="panel w-full p-8">
+            <div className="relative mx-auto h-24 w-full overflow-hidden rounded-2xl" style={{ background: room.thumbnail }}>
+              <div className="absolute inset-0 bg-gradient-to-t from-ink-950/60 to-transparent" />
+            </div>
+            <h1 className="mt-4 font-display text-xl font-bold text-sand-50">{room.title}</h1>
+            <p className="mt-1 text-sm text-sand-500">{room.topic}</p>
+            <div className="mt-4 flex items-center justify-center gap-3 text-sm text-sand-300">
+              <span className="chip bg-sand-50/[0.05]"><Users className="h-3.5 w-3.5" /> {room.participantIds.length}/{room.capacity}</span>
+              {room.locked && <span className="chip bg-flame-500/10 text-flame-400"><Lock className="h-3.5 w-3.5" /> Locked</span>}
+              <span className="chip bg-sand-50/[0.05]">Host · {host.username}</span>
             </div>
 
             {pendingJoin ? (
               <div className="mt-6">
-                <div className="flex items-center justify-center gap-2 text-neon-amber">
-                  <span className="h-2 w-2 animate-pulseglow rounded-full bg-neon-amber" />
+                <div className="flex items-center justify-center gap-2 text-honey-400">
+                  <span className="h-2 w-2 animate-pulseglow rounded-full bg-honey-400" />
                   <span className="text-sm font-medium">Waiting for an admin to approve you…</span>
                 </div>
-                <p className="mt-2 text-xs text-white/45">
-                  Tip: open the <Link href="/admin" className="text-neon-cyan underline">Admin dashboard</Link> in
+                <p className="mt-2 text-xs text-sand-500">
+                  Tip: open the <Link href="/admin" className="text-ember-400 underline">Admin dashboard</Link> in
                   this demo and approve your own request.
                 </p>
               </div>
             ) : room.locked ? (
-              <p className="mt-6 text-sm text-red-400">This room is locked. Ask an admin for an invite link.</p>
+              <p className="mt-6 text-sm text-flame-400">This room is locked. Ask an admin for an invite link.</p>
             ) : (
               <button
                 onClick={() => { store.requestJoin(id); setPendingJoin(true); }}
-                className="btn-neon mt-6 w-full"
+                className="btn-primary mt-6 w-full"
               >
                 <Hand className="h-4 w-4" /> Request to join
               </button>
@@ -175,19 +177,21 @@ function LiveRoom({
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="chip bg-red-500/90 text-white"><Radio className="h-3 w-3" /> LIVE</span>
-              <h1 className="truncate font-display text-lg font-bold text-white">{room.title}</h1>
-              {room.locked && <Lock className="h-4 w-4 text-red-400" />}
+              <span className="chip bg-flame-500 font-display uppercase tracking-wider text-sand-50">
+                <span className="h-1.5 w-1.5 animate-pulseglow rounded-full bg-sand-50" /> Live
+              </span>
+              <h1 className="truncate font-display text-lg font-bold text-sand-50">{room.title}</h1>
+              {room.locked && <Lock className="h-4 w-4 text-flame-400" />}
             </div>
-            <p className="truncate text-sm text-white/50">{room.topic}</p>
+            <p className="truncate text-sm text-sand-500">{room.topic}</p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="chip bg-white/5 text-white/70"><Users className="h-3.5 w-3.5" /> {participants.length}/{room.capacity}</span>
-            <button onClick={copyInvite} className="chip bg-white/5 text-white/70 hover:text-white">
+            <span className="chip border border-sand-50/10 bg-sand-50/[0.04] text-sand-300"><Users className="h-3.5 w-3.5" /> {participants.length}/{room.capacity}</span>
+            <button onClick={copyInvite} className="chip border border-sand-50/10 bg-sand-50/[0.04] text-sand-300 transition-colors hover:border-sand-50/25 hover:text-sand-50">
               <Link2 className="h-3.5 w-3.5" /> Invite
             </button>
             {canModerate && (
-              <button onClick={() => store.toggleLock(roomId)} className="chip bg-white/5 text-white/70 hover:text-white">
+              <button onClick={() => store.toggleLock(roomId)} className="chip border border-sand-50/10 bg-sand-50/[0.04] text-sand-300 transition-colors hover:border-sand-50/25 hover:text-sand-50">
                 <Lock className="h-3.5 w-3.5" /> {room.locked ? "Unlock" : "Lock"}
               </button>
             )}
@@ -216,7 +220,7 @@ function LiveRoom({
                 ))}
             </div>
             {mediaError && (
-              <p className="mt-2 text-center text-xs text-neon-amber/80">{mediaError}</p>
+              <p className="mt-2 text-center text-xs text-honey-400/80">{mediaError}</p>
             )}
 
             {/* floating reactions */}
@@ -239,27 +243,27 @@ function LiveRoom({
             </div>
 
             {/* Control bar */}
-            <div className="glass mt-4 flex flex-wrap items-center justify-center gap-2 p-3">
+            <div className="panel mt-4 flex flex-wrap items-center justify-center gap-2 rounded-full p-3">
               <button
                 onClick={() => setMicOn(!micOn)}
-                className={`grid h-11 w-11 place-items-center rounded-full ${micOn ? "bg-white/10 text-white" : "bg-red-500/20 text-red-400"}`}
+                className={`grid h-11 w-11 place-items-center rounded-full transition-colors ${micOn ? "bg-sand-50/10 text-sand-50 hover:bg-sand-50/15" : "bg-flame-500/20 text-flame-400"}`}
               >
                 {micOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
               </button>
               <button
                 onClick={() => setCamOn(!camOn)}
-                className={`grid h-11 w-11 place-items-center rounded-full ${camOn ? "bg-white/10 text-white" : "bg-red-500/20 text-red-400"}`}
+                className={`grid h-11 w-11 place-items-center rounded-full transition-colors ${camOn ? "bg-sand-50/10 text-sand-50 hover:bg-sand-50/15" : "bg-flame-500/20 text-flame-400"}`}
               >
                 {camOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
               </button>
               <button
                 onClick={() => { setHandUp(!handUp); store.raiseHand(roomId, meId); }}
-                className={`grid h-11 w-11 place-items-center rounded-full transition-colors ${handUp ? "bg-neon-amber/30 text-neon-amber" : "bg-white/10 text-white"}`}
+                className={`grid h-11 w-11 place-items-center rounded-full transition-colors ${handUp ? "bg-honey-500/25 text-honey-400" : "bg-sand-50/10 text-sand-50 hover:bg-sand-50/15"}`}
                 title="Raise hand"
               >
                 <Hand className="h-5 w-5" />
               </button>
-              <div className="mx-1 flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
+              <div className="mx-1 flex items-center gap-1 rounded-full bg-sand-50/[0.05] px-2 py-1">
                 {reactions.map((e) => (
                   <button
                     key={e}
@@ -273,7 +277,7 @@ function LiveRoom({
               <Link
                 href="/explore"
                 onClick={() => store.leaveRoom(roomId)}
-                className="ml-auto grid h-11 place-items-center rounded-full bg-red-500 px-5 font-semibold text-white hover:bg-red-600"
+                className="ml-auto grid h-11 place-items-center rounded-full bg-flame-500 px-5 font-display font-bold text-sand-50 transition-colors hover:bg-flame-400"
               >
                 <span className="flex items-center gap-2"><PhoneOff className="h-4 w-4" /> Leave</span>
               </Link>
@@ -284,17 +288,17 @@ function LiveRoom({
           <div className="flex flex-col gap-4">
             {canModerate && <RequestsInline roomId={roomId} />}
 
-            <div className="glass flex min-h-[520px] flex-1 flex-col">
-              <div className="flex items-center gap-2 border-b border-white/10 p-3">
-                <Users className="h-4 w-4 text-white/60" />
-                <span className="text-sm font-semibold text-white">Live chat</span>
-                <span className="ml-auto chip bg-neon-lime/15 text-neon-lime">
-                  <span className="h-1.5 w-1.5 rounded-full bg-neon-lime" /> real-time
+            <div className="panel flex min-h-[520px] flex-1 flex-col">
+              <div className="flex items-center gap-2 border-b border-sand-50/[0.07] p-3">
+                <Users className="h-4 w-4 text-sand-500" />
+                <span className="font-display text-sm font-bold text-sand-50">Live chat</span>
+                <span className="ml-auto chip border border-mint-400/20 bg-mint-400/10 text-mint-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-mint-400" /> real-time
                 </span>
               </div>
               <div ref={chatRef} className="flex-1 space-y-2 overflow-y-auto p-3">
                 {messages.length === 0 && (
-                  <p className="py-8 text-center text-sm text-white/35">Say hi 👋 — the room is listening.</p>
+                  <p className="py-8 text-center text-sm text-sand-500/70">Say hi 👋 — the room is listening.</p>
                 )}
                 {messages.map((m) => {
                   const u = store.userById(m.userId)!;
@@ -302,24 +306,28 @@ function LiveRoom({
                   return (
                     <div key={m.id} className={`flex gap-2 ${mine ? "flex-row-reverse" : ""}`}>
                       <Avatar user={u} size="sm" showPresence={false} />
-                      <div className={`max-w-[75%] rounded-2xl px-3 py-2 ${mine ? "bg-neon-violet/25" : "bg-white/5"}`}>
-                        <p className="text-[11px] font-semibold text-white/60">{u.username}</p>
-                        <p className="text-sm text-white/90">{m.text}</p>
+                      <div className={`max-w-[75%] rounded-2xl px-3 py-2 ${mine ? "border border-ember-500/25 bg-ember-500/15" : "bg-sand-50/[0.05]"}`}>
+                        <p className="text-[11px] font-semibold text-sand-300/80">{u.username}</p>
+                        <p className="text-sm text-sand-50">{m.text}</p>
                       </div>
                     </div>
                   );
                 })}
                 <TypingIndicator participants={participants.filter((p) => p.id !== meId)} />
               </div>
-              <div className="flex items-center gap-2 border-t border-white/10 p-3">
+              <div className="flex items-center gap-2 border-t border-sand-50/[0.07] p-3">
                 <input
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && send()}
                   placeholder="Message the room…"
-                  className="flex-1 rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:border-neon-violet/50 focus:outline-none"
+                  className="flex-1 rounded-full border border-sand-50/10 bg-sand-50/[0.04] px-4 py-2.5 text-sm text-sand-50 transition-colors placeholder:text-sand-500/70 focus:border-ember-500/60 focus:outline-none"
                 />
-                <button onClick={send} className="grid h-10 w-10 place-items-center rounded-full bg-neon-violet text-white hover:bg-neon-violet/80">
+                <button
+                  onClick={send}
+                  className="grid h-10 w-10 place-items-center rounded-full text-ink-950 shadow-ember transition-transform hover:scale-105"
+                  style={{ background: "linear-gradient(135deg,#ffc24d,#ff6a2b 60%,#f04e0f)" }}
+                >
                   <Send className="h-4 w-4" />
                 </button>
               </div>
@@ -362,16 +370,16 @@ function Tile({
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border transition-all ${
-        speaking ? "border-neon-lime/70 shadow-[0_0_0_3px_rgba(163,230,53,0.25)]" : "border-white/10"
+      className={`group relative overflow-hidden rounded-3xl border transition-all ${
+        speaking ? "border-mint-400/70 shadow-[0_0_0_3px_rgba(74,222,151,0.25)]" : "border-sand-50/10"
       } ${big ? "aspect-video" : "aspect-square sm:aspect-video"}`}
       style={{ background: user.color }}
     >
       {hasVideo && <VideoStream stream={stream!} muted={isSelf} />}
-      <div className={`absolute inset-0 ${hasVideo ? "bg-transparent" : "bg-black/35"}`} />
+      <div className={`absolute inset-0 ${hasVideo ? "bg-transparent" : "bg-ink-950/40"}`} />
       {!hasVideo && (
         <div className="absolute inset-0 grid place-items-center">
-          <div className={`grid place-items-center rounded-full bg-black/30 font-black text-white ${big ? "h-24 w-24 text-3xl" : "h-14 w-14 text-lg"}`}>
+          <div className={`grid place-items-center rounded-full bg-ink-950/40 font-display font-bold text-sand-50 ${big ? "h-24 w-24 text-3xl" : "h-14 w-14 text-lg"}`}>
             {user.avatar}
           </div>
         </div>
@@ -379,9 +387,9 @@ function Tile({
 
       {/* top badges */}
       <div className="absolute left-2 top-2 flex items-center gap-1.5">
-        {user.role === "admin" && <span className="chip bg-neon-fuchsia/90 text-white"><ShieldCheck className="h-3 w-3" /></span>}
-        {ps.pinned && <span className="chip bg-neon-cyan/90 text-black"><Pin className="h-3 w-3" /></span>}
-        {ps.handRaised && <span className="chip animate-pulseglow bg-neon-amber/90 text-black"><Hand className="h-3 w-3" /></span>}
+        {user.role === "admin" && <span className="chip bg-ember-500/90 text-ink-950"><ShieldCheck className="h-3 w-3" /></span>}
+        {ps.pinned && <span className="chip bg-sand-50/90 text-ink-950"><Pin className="h-3 w-3" /></span>}
+        {ps.handRaised && <span className="chip animate-pulseglow bg-honey-400/90 text-ink-950"><Hand className="h-3 w-3" /></span>}
       </div>
 
       {/* speaking wave */}
@@ -390,7 +398,7 @@ function Tile({
           {[0, 1, 2].map((i) => (
             <motion.span
               key={i}
-              className="w-1 rounded-full bg-neon-lime"
+              className="w-1 rounded-full bg-mint-400"
               animate={{ height: [4, 12, 6, 14, 4] }}
               transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
             />
@@ -399,16 +407,16 @@ function Tile({
       )}
 
       {/* bottom bar */}
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-black/70 to-transparent p-2">
-        <span className="flex items-center gap-1 text-xs font-semibold text-white">
-          {ps.muted ? <MicOff className="h-3 w-3 text-red-400" /> : <Volume2 className="h-3 w-3 text-neon-lime" />}
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-ink-950/80 to-transparent p-2">
+        <span className="flex items-center gap-1 text-xs font-semibold text-sand-50">
+          {ps.muted ? <MicOff className="h-3 w-3 text-flame-400" /> : <Volume2 className="h-3 w-3 text-mint-400" />}
           {user.username}{user.id === meId && " (you)"}
         </span>
         {canModerate && user.id !== meId && (
           <div className="relative">
             <button
               onClick={() => setMenuFor(menuFor === user.id ? null : user.id)}
-              className="grid h-6 w-6 place-items-center rounded-md bg-white/10 text-white opacity-0 transition-opacity group-hover:opacity-100"
+              className="grid h-6 w-6 place-items-center rounded-md bg-sand-50/10 text-sand-50 opacity-0 transition-opacity group-hover:opacity-100"
             >
               <MoreVertical className="h-3.5 w-3.5" />
             </button>
@@ -418,7 +426,7 @@ function Tile({
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 6 }}
-                  className="absolute bottom-8 right-0 z-20 w-40 overflow-hidden rounded-xl border border-white/10 bg-base-700 shadow-xl"
+                  className="absolute bottom-8 right-0 z-20 w-40 overflow-hidden rounded-2xl border border-sand-50/10 bg-ink-700 shadow-card"
                 >
                   <MenuItem icon={ps.muted ? Mic : MicOff} label={ps.muted ? "Unmute" : "Mute"}
                     onClick={() => { store.toggleMute(roomId, user.id); setMenuFor(null); }} />
@@ -440,7 +448,7 @@ function MenuItem({ icon: Icon, label, onClick, danger }: any) {
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors hover:bg-white/10 ${danger ? "text-red-400" : "text-white/80"}`}
+      className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors hover:bg-sand-50/10 ${danger ? "text-flame-400" : "text-sand-100"}`}
     >
       <Icon className="h-4 w-4" /> {label}
     </button>
@@ -452,11 +460,11 @@ function RequestsInline({ roomId }: { roomId: string }) {
   const pending = store.requests.filter((r) => r.roomId === roomId && r.status === "pending");
   if (pending.length === 0) return null;
   return (
-    <div className="glass p-3">
+    <div className="panel p-3">
       <div className="mb-2 flex items-center gap-2">
-        <ShieldCheck className="h-4 w-4 text-neon-amber" />
-        <span className="text-sm font-semibold text-white">Join requests</span>
-        <span className="ml-auto chip bg-neon-amber/15 text-neon-amber">{pending.length}</span>
+        <ShieldCheck className="h-4 w-4 text-honey-400" />
+        <span className="font-display text-sm font-bold text-sand-50">Join requests</span>
+        <span className="ml-auto chip border border-honey-500/25 bg-honey-500/10 text-honey-400">{pending.length}</span>
       </div>
       <div className="space-y-2">
         <AnimatePresence initial={false}>
@@ -469,14 +477,14 @@ function RequestsInline({ roomId }: { roomId: string }) {
                 initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 12 }}
-                className="flex items-center gap-2 rounded-xl bg-white/5 p-2"
+                className="flex items-center gap-2 rounded-2xl bg-sand-50/[0.04] p-2"
               >
                 <Avatar user={u} size="sm" />
-                <span className="flex-1 truncate text-sm text-white">{u.username}</span>
-                <button onClick={() => store.resolveRequest(r.id, true)} className="grid h-8 w-8 place-items-center rounded-lg bg-neon-lime/20 text-neon-lime">
+                <span className="flex-1 truncate text-sm text-sand-50">{u.username}</span>
+                <button onClick={() => store.resolveRequest(r.id, true)} className="grid h-8 w-8 place-items-center rounded-full bg-mint-400/15 text-mint-400 transition-colors hover:bg-mint-400/25">
                   <Check className="h-4 w-4" />
                 </button>
-                <button onClick={() => store.resolveRequest(r.id, false)} className="grid h-8 w-8 place-items-center rounded-lg bg-red-500/20 text-red-400">
+                <button onClick={() => store.resolveRequest(r.id, false)} className="grid h-8 w-8 place-items-center rounded-full bg-flame-500/15 text-flame-400 transition-colors hover:bg-flame-500/25">
                   <UserX className="h-4 w-4" />
                 </button>
               </motion.div>
@@ -503,10 +511,10 @@ function TypingIndicator({ participants }: { participants: any[] }) {
 
   if (typers.length === 0) return null;
   return (
-    <div className="flex items-center gap-2 px-1 text-xs text-white/45">
+    <div className="flex items-center gap-2 px-1 text-xs text-sand-500">
       <span className="flex gap-0.5">
         {[0, 1, 2].map((i) => (
-          <motion.span key={i} className="h-1.5 w-1.5 rounded-full bg-white/50"
+          <motion.span key={i} className="h-1.5 w-1.5 rounded-full bg-sand-500"
             animate={{ opacity: [0.2, 1, 0.2] }} transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} />
         ))}
       </span>
